@@ -48,9 +48,6 @@ namespace Game.Nodes.Presentation
 		protected override void Awake()
 		{
 			base.Awake();
-
-			// Важно: включаем raycast, но ниже через Raycast()
-			// пропускаем клики, если мышь не рядом с линией.
 			raycastTarget = true;
 		}
 
@@ -195,15 +192,25 @@ namespace Game.Nodes.Presentation
 			Vector2 controlB = end + Vector2.left * tangent;
 
 			int safeSegments = Mathf.Max(4, segments);
+
 			Vector2 previousPoint = start;
+			float previousT = 0f;
 
 			for (int i = 1; i <= safeSegments; i++)
 			{
 				float t = i / (float)safeSegments;
 				Vector2 currentPoint = EvaluateBezier(start, controlA, controlB, end, t);
 
-				AddLineSegment(vertexHelper, previousPoint, currentPoint);
+				AddLineSegment(
+					vertexHelper,
+					previousPoint,
+					currentPoint,
+					previousT,
+					t
+				);
+
 				previousPoint = currentPoint;
+				previousT = t;
 			}
 		}
 
@@ -213,7 +220,12 @@ namespace Game.Nodes.Presentation
 			return SelfRect.InverseTransformPoint(worldCenter);
 		}
 
-		private void AddLineSegment(VertexHelper vertexHelper, Vector2 start, Vector2 end)
+		private void AddLineSegment(
+			VertexHelper vertexHelper,
+			Vector2 start,
+			Vector2 end,
+			float startProgress,
+			float endProgress)
 		{
 			Vector2 direction = end - start;
 
@@ -230,15 +242,19 @@ namespace Game.Nodes.Presentation
 			vertex.color = color;
 
 			vertex.position = start - normal;
+			vertex.uv0 = new Vector2(startProgress, 0f);
 			vertexHelper.AddVert(vertex);
 
 			vertex.position = start + normal;
+			vertex.uv0 = new Vector2(startProgress, 1f);
 			vertexHelper.AddVert(vertex);
 
 			vertex.position = end + normal;
+			vertex.uv0 = new Vector2(endProgress, 1f);
 			vertexHelper.AddVert(vertex);
 
 			vertex.position = end - normal;
+			vertex.uv0 = new Vector2(endProgress, 0f);
 			vertexHelper.AddVert(vertex);
 
 			vertexHelper.AddTriangle(index, index + 1, index + 2);
@@ -261,7 +277,10 @@ namespace Game.Nodes.Presentation
 				t * t * t * end;
 		}
 
-		private static float DistancePointToSegment(Vector2 point, Vector2 segmentStart, Vector2 segmentEnd)
+		private static float DistancePointToSegment(
+			Vector2 point,
+			Vector2 segmentStart,
+			Vector2 segmentEnd)
 		{
 			Vector2 segment = segmentEnd - segmentStart;
 			float segmentLengthSqr = segment.sqrMagnitude;

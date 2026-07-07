@@ -16,7 +16,7 @@ MonoBehaviour:
   kind: 60
   title: Time
   prefab: {fileID: 5831212703447516320, guid: 60704d5f7488ac8459037f469d4fb9f4, type: 3}
-  jsonDefinition: {fileID: 0}
+  jsonDefinition: {fileID: 11400000, guid: 334057506c92d3640947a1da851b5aaf, type: 2}
   isUnique: 0
   canMove: 1
   canDelete: 1

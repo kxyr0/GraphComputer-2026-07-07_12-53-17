@@ -1,0 +1,195 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14984d33b41a6fd42be0ec4c4a3df710, type: 3}
+  m_Name: OsRuntimeMetricsConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Runtime.OsRuntimeMetricsConfig
+  rootNodeDefinitionId: system_core
+  baseStability: 50
+  baseSystemLoad: 8
+  baseMemoryUsage: 12
+  baseStorageUsage: 4
+  baseNetworkSpeedMbps: 0.25
+  missingMainBranchPenalty: 8
+  highLoadStabilityPenalty: 0.35
+  highMemoryStabilityPenalty: 0.2
+  dataFileSystemName: FAT-95
+  baseDataReadSpeedMb: 1.2
+  baseDataSafety: 42
+  baseDataIndexSizeMb: 14
+  fileSystemReadSpeedBonusMb: 0.9
+  fileSystemSafetyBonus: 10
+  backupSafetyBonus: 18
+  recoverySafetyBonus: 12
+  compressionIndexMultiplier: 0.72
+  kernelType: Hybrid
+  baseProcessLimit: 32
+  baseCrashRisk: 9
+  baseResponseTimeMs: 16
+  processManagerLimitBonus: 32
+  schedulerLimitBonus: 16
+  memoryManagerLimitBonus: 16
+  memoryManagerCrashRiskReduction: 3
+  schedulerCrashRiskReduction: 2
+  recoveryCrashRiskReduction: 3
+  processManagerResponseReductionMs: 2
+  schedulerResponseReductionMs: 4
+  memoryManagerResponseReductionMs: 1
+  baseVulnerabilities: 7
+  baseEncryptionPercent: 8
+  baseFirewallMode: None
+  activeFirewallMode: Basic
+  firewallVulnerabilityReduction: 2
+  permissionsVulnerabilityReduction: 1
+  antivirusVulnerabilityReduction: 3
+  encryptionVulnerabilityReduction: 2
+  encryptionPercentBonus: 36
+  baseDeviceSupport: 34
+  baseInputDelayMs: 18
+  baseAudioLayer: None
+  activeAudioLayer: Basic
+  basePowerControl: 18
+  displayDeviceSupportBonus: 14
+  soundDeviceSupportBonus: 6
+  devicesSupportBonus: 28
+  powerControlBonus: 34
+  displayInputDelayReductionMs: 2
+  devicesInputDelayReductionMs: 3
+  powerInputDelayReductionMs: 1
+  refreshInterval: 0.25
+  variationMode: 1
+  variationSeed: 152
+  noiseSpeed: 0.7
+  smoothing: 0.35
+  stabilityJitter: 2
+  loadJitter: 3
+  memoryJitter: 2
+  storageJitter: 1
+  networkJitterMbps: 0.12
+  dataReadSpeedJitterMb: 0.15
+  dataSafetyJitter: 2
+  dataIndexSizeJitterMb: 1
+  kernelCrashRiskJitter: 1
+  kernelResponseTimeJitterMs: 1
+  securityVulnerabilityJitter: 1
+  securityEncryptionJitter: 2
+  controlDeviceSupportJitter: 2
+  controlInputDelayJitterMs: 1
+  controlPowerJitter: 2
+  metricRules:
+  - nodeDefinitionId: system_core
+    stabilityBonus: 12
+    loadCost: 4
+    memoryCost: 5
+    storageCost: 3
+    networkSpeedMbpsBonus: 0.2
+  - nodeDefinitionId: data
+    stabilityBonus: 7
+    loadCost: 4
+    memoryCost: 6
+    storageCost: 9
+    networkSpeedMbpsBonus: 0.05
+  - nodeDefinitionId: kernel
+    stabilityBonus: 16
+    loadCost: 8
+    memoryCost: 10
+    storageCost: 3
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: security
+    stabilityBonus: 8
+    loadCost: 5
+    memoryCost: 4
+    storageCost: 2
+    networkSpeedMbpsBonus: 0.1
+  - nodeDefinitionId: control
+    stabilityBonus: 4
+    loadCost: 6
+    memoryCost: 4
+    storageCost: 2
+    networkSpeedMbpsBonus: 0.3
+  - nodeDefinitionId: file_system
+    stabilityBonus: 6
+    loadCost: 4
+    memoryCost: 3
+    storageCost: 10
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: backup
+    stabilityBonus: 4
+    loadCost: 3
+    memoryCost: 3
+    storageCost: 12
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: compression
+    stabilityBonus: 2
+    loadCost: 6
+    memoryCost: 2
+    storageCost: -5
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: recovery
+    stabilityBonus: 3
+    loadCost: 3
+    memoryCost: 2
+    storageCost: 4
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: firewall
+    stabilityBonus: 5
+    loadCost: 4
+    memoryCost: 3
+    storageCost: 1
+    networkSpeedMbpsBonus: -0.05
+  - nodeDefinitionId: permissions
+    stabilityBonus: 4
+    loadCost: 3
+    memoryCost: 2
+    storageCost: 1
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: antivirus
+    stabilityBonus: 6
+    loadCost: 8
+    memoryCost: 7
+    storageCost: 3
+    networkSpeedMbpsBonus: -0.1
+  - nodeDefinitionId: encryption
+    stabilityBonus: 5
+    loadCost: 7
+    memoryCost: 5
+    storageCost: 2
+    networkSpeedMbpsBonus: -0.05
+  - nodeDefinitionId: memory_manager
+    stabilityBonus: 10
+    loadCost: 5
+    memoryCost: -8
+    storageCost: 1
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: process_manager
+    stabilityBonus: 8
+    loadCost: 6
+    memoryCost: 4
+    storageCost: 1
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: display_manager
+    stabilityBonus: 3
+    loadCost: 7
+    memoryCost: 5
+    storageCost: 1
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: time
+    stabilityBonus: 0
+    loadCost: 1
+    memoryCost: 1
+    storageCost: 0
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: era_news
+    stabilityBonus: 0
+    loadCost: 1
+    memoryCost: 1
+    storageCost: 0
+    networkSpeedMbpsBonus: 0

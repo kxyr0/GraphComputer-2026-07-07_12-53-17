@@ -2102,6 +2102,8 @@ GameObject:
   - component: {fileID: 2132343355331016016}
   - component: {fileID: 3533047036657368129}
   - component: {fileID: 7774470021750994999}
+  - component: {fileID: -8099368659703396219}
+  - component: {fileID: -9090315547368944917}
   m_Layer: 0
   m_Name: Node_security
   m_TagString: Untagged
@@ -2211,6 +2213,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Runtime.GameInfoNodeRuntime
   timeService: {fileID: 0}
   newsService: {fileID: 0}
+  refreshInterval: 0.25
+--- !u!114 &-8099368659703396219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5831212703447516320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9564ebf1306f289489c3ece8b43f74e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Runtime.SystemCoreNodeRuntime
+  metricsService: {fileID: 0}
+  refreshInterval: 0.25
+--- !u!114 &-9090315547368944917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5831212703447516320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 129c453cc5e6305429c38c7e820225ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Runtime.OsBranchNodeRuntime
+  metricsService: {fileID: 0}
   refreshInterval: 0.25
 --- !u!1 &5901708045135467635
 GameObject:

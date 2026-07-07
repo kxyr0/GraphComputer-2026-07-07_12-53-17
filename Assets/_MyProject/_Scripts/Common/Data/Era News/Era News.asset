@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5096231f0d0657e40af66b3aa96358a3, type: 3}
   m_Name: Era News
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
-  json: "{\n  \"id\": \"era_news\",\n  \"title\": \"Era News\",\n  \"size\": {\n   
-    \"x\": 520,\n    \"y\": 380\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
-    \"#102333DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
-    \"stats\": [\n    {\n      \"label\": \"Headline\",\n      \"value\": \"New OS
-    race begins\"\n    },\n    {\n      \"label\": \"Source\",\n      \"value\":
-    \"Tech Daily\"\n    },\n    {\n      \"label\": \"Impact\",\n      \"value\":
-    \"Neutral\"\n    },\n    {\n      \"label\": \"Date\",\n      \"value\": \"01.01.1995\"\n   
+  json: "{\n  \"id\": \"news\",\n  \"title\": \"News\",\n  \"size\": {\n    \"x\":
+    550,\n    \"y\": 430\n  },\n  \"canMove\": true,\n  \"backgroundColor\": \"#102333DD\",\n 
+    \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n  \"stats\":
+    [\n    {\n      \"label\": \"Date\",\n      \"value\": \"01.01.1995\"\n    },\n   
+    {\n      \"label\": \"Headline\",\n      \"value\": \"THE WEB IS WAKING UP\"\n   
+    },\n    {\n      \"label\": \"Description\",\n      \"value\": \"The internet
+    is moving from universities and labs into homes, offices and business plans.\"\n   
     }\n  ],\n  \"ports\": []\n}"

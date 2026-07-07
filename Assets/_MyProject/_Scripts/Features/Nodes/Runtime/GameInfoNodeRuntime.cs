@@ -30,7 +30,7 @@ namespace Game.Nodes.Runtime
 
 		private void Update()
 		{
-			refreshTimer += Time.deltaTime;
+			refreshTimer += UnityEngine.Time.unscaledDeltaTime;
 
 			if (refreshTimer < refreshInterval)
 			{
@@ -64,8 +64,9 @@ namespace Game.Nodes.Runtime
 					RefreshTimeNode();
 					break;
 
+				case "news":
 				case "era_news":
-					RefreshEraNewsNode();
+					RefreshNewsNode();
 					break;
 			}
 		}
@@ -74,8 +75,14 @@ namespace Game.Nodes.Runtime
 		{
 			if (timeService == null)
 			{
+				ResolveServices();
+			}
+
+			if (timeService == null)
+			{
 				nodeView.TrySetStatValue("Clock", "Missing");
 				nodeView.TrySetStatValue("Date", "Missing");
+				nodeView.TrySetStatValue("Speed", "Missing");
 				nodeView.TrySetStatValue("Status", "No Service");
 				return;
 			}
@@ -86,26 +93,26 @@ namespace Game.Nodes.Runtime
 			nodeView.TrySetStatValue("Status", timeService.GetStatusText());
 		}
 
-		private void RefreshEraNewsNode()
+		private void RefreshNewsNode()
 		{
 			if (newsService == null)
 			{
-				nodeView.TrySetStatValue("Headline", "No signal");
-				nodeView.TrySetStatValue("Source", "Unknown");
-				nodeView.TrySetStatValue("Impact", "None");
+				ResolveServices();
+			}
+
+			if (newsService == null)
+			{
+				nodeView.TrySetStatValue("Date", "Missing");
+				nodeView.TrySetStatValue("Headline", "NO SIGNAL");
+				nodeView.TrySetStatValue("Description", "News service is missing.");
 				return;
 			}
 
 			EraNewsEntry news = newsService.GetCurrentNews();
 
-			nodeView.TrySetStatValue("Headline", news.Title);
-			nodeView.TrySetStatValue("Source", news.Source);
-			nodeView.TrySetStatValue("Impact", news.Impact);
-
-			if (timeService != null)
-			{
-				nodeView.TrySetStatValue("Date", timeService.GetDateText());
-			}
+			nodeView.TrySetStatValue("Date", news.DateText);
+			nodeView.TrySetStatValue("Headline", news.Headline);
+			nodeView.TrySetStatValue("Description", news.Description);
 		}
 
 		private string GetNodeId()
