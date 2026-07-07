@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75c6aa0a5b22e4c4a84bf997a5e659fc, type: 3}
+  m_Name: Memory Manager
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeDefinition
+  id: node.memory.manager
+  kind: 3
+  title: Memory Manager
+  prefab: {fileID: 5831212703447516320, guid: 60704d5f7488ac8459037f469d4fb9f4, type: 3}
+  jsonDefinition: {fileID: 11400000, guid: c0dcbb77d963b5047a35d832860c24de, type: 2}
+  isUnique: 0
+  canMove: 1
+  canDelete: 1
+  size: {x: 220, y: 140}
+  backgroundColor: {r: 0.03, g: 0.04, b: 0.07, a: 0.92}
+  headerColor: {r: 0.02, g: 0.02, b: 0.05, a: 1}
+  accentColor: {r: 0, g: 1, b: 1, a: 1}
+  ports: []

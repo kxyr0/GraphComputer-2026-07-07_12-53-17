@@ -1,0 +1,17 @@
+{
+	"name": "Game.Grid.Presentation",
+	"rootNamespace": "Game.Grid.Presentation",
+	"references": [
+		"Game.Grid.Domain",
+		"UnityEngine.UI"
+	],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": false,
+	"precompiledReferences": [],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": false
+}

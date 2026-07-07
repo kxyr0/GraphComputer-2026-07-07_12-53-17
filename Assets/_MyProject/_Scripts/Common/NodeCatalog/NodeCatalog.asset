@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 521b0a6e7481f01469858ab7596208f5, type: 3}
+  m_Name: NodeCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeCatalog
+  definitions:
+  - {fileID: 11400000, guid: b8a83879ad8e24940bdaa0fbdc5e9125, type: 2}
+  - {fileID: 11400000, guid: 8c031aeb2797edd4e9bdc5ad4b1e66bd, type: 2}
+  - {fileID: 11400000, guid: 150a6f9a2ca9fea4bbb811783f2bb632, type: 2}
+  - {fileID: 11400000, guid: 74b052f2ea4e67741bbb09c1c3d3b30b, type: 2}
+  - {fileID: 11400000, guid: a2e78e37a1b3dba40b467aebef8e4558, type: 2}
+  - {fileID: 11400000, guid: 477b0cb31c75a1a4d8c61638d226638f, type: 2}
+  - {fileID: 11400000, guid: bad8d0c74e365354e838aa3b6a2121e4, type: 2}
+  - {fileID: 11400000, guid: c4d11e8e98aa7ea488a7bf2261a2eba0, type: 2}

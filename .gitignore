@@ -19,7 +19,10 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 *.log
-
+_EMERGENCY_RECOVERY
+_PANIC_BACKUP
+_RECOVERED_FROM_VSCODE_HISTORY
+_RECOVERED_NODE_SCRIPTS
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be committed to version control.
 *.blend1
 *.blend1.meta
