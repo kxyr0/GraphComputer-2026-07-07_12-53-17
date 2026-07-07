@@ -21,6 +21,10 @@ namespace Game.Nodes.Presentation
 		[SerializeField] private bool bindJsonOnEnable = false;
 		[SerializeField] private bool previewJsonInEditor = true;
 
+#if UNITY_EDITOR
+		[SerializeField, HideInInspector] private int editorPreviewHash;
+#endif
+
 		[Header("Root")]
 		[SerializeField] private RectTransform rectTransform;
 
@@ -80,6 +84,13 @@ namespace Game.Nodes.Presentation
 
 		private void OnEnable()
 		{
+#if UNITY_EDITOR
+			if (!Application.isPlaying)
+			{
+				return;
+			}
+#endif
+
 			if (bindJsonOnEnable && jsonDefinition != null)
 			{
 				BindFromJsonAsset();
@@ -89,7 +100,14 @@ namespace Game.Nodes.Presentation
 #if UNITY_EDITOR
 		private void OnValidate()
 		{
-			if (!previewJsonInEditor || Application.isPlaying || jsonDefinition == null)
+			if (!CanPreviewJsonInEditor())
+			{
+				return;
+			}
+
+			int previewHash = CalculateEditorPreviewHash();
+
+			if (editorPreviewHash == previewHash && HasGeneratedElements())
 			{
 				return;
 			}
@@ -100,19 +118,105 @@ namespace Game.Nodes.Presentation
 
 		private void DelayedEditorPreview()
 		{
-			if (this == null || Application.isPlaying)
+			if (this == null || !CanPreviewJsonInEditor())
+			{
+				return;
+			}
+
+			int previewHash = CalculateEditorPreviewHash();
+
+			if (editorPreviewHash == previewHash && HasGeneratedElements())
 			{
 				return;
 			}
 
 			BindFromJsonAsset();
+			editorPreviewHash = previewHash;
 			EditorUtility.SetDirty(this);
+		}
+
+		private bool CanPreviewJsonInEditor()
+		{
+			return previewJsonInEditor
+				&& !Application.isPlaying
+				&& jsonDefinition != null
+				&& !EditorUtility.IsPersistent(gameObject)
+				&& !PrefabUtility.IsPartOfPrefabAsset(gameObject)
+				&& !EditorApplication.isCompiling
+				&& !EditorApplication.isUpdating;
+		}
+
+		private int CalculateEditorPreviewHash()
+		{
+			return StableStringHash(jsonDefinition != null ? jsonDefinition.Json : string.Empty);
+		}
+
+		private bool HasGeneratedElements()
+		{
+			return HasGeneratedChildren(statsRoot)
+				|| HasGeneratedChildren(inputPortsRoot)
+				|| HasGeneratedChildren(outputPortsRoot);
+		}
+
+		private static bool HasGeneratedChildren(RectTransform root)
+		{
+			if (root == null)
+			{
+				return false;
+			}
+
+			for (int i = 0; i < root.childCount; i++)
+			{
+				if (root.GetChild(i).GetComponent<NodeGeneratedElement>() != null)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static int StableStringHash(string value)
+		{
+			unchecked
+			{
+				const int fnvOffsetBasis = -2128831035;
+				const int fnvPrime = 16777619;
+
+				int hash = fnvOffsetBasis;
+
+				if (string.IsNullOrEmpty(value))
+				{
+					return hash;
+				}
+
+				for (int i = 0; i < value.Length; i++)
+				{
+					hash ^= value[i];
+					hash *= fnvPrime;
+				}
+
+				return hash;
+			}
 		}
 #endif
 
 		[ContextMenu("Rebuild From Json")]
 		public void BindFromJsonAsset()
 		{
+#if UNITY_EDITOR
+			if (!Application.isPlaying
+				&& (EditorUtility.IsPersistent(gameObject)
+					|| PrefabUtility.IsPartOfPrefabAsset(gameObject)))
+			{
+				Debug.LogWarning(
+					$"[{nameof(NodeView)}] Skipped JSON rebuild on prefab asset. Open it in Prefab Mode or enter Play Mode before rebuilding generated children.",
+					this);
+
+				return;
+			}
+#endif
+
 			if (jsonDefinition == null)
 			{
 				Debug.LogWarning($"[{nameof(NodeView)}] Json definition is missing.", this);
@@ -126,6 +230,13 @@ namespace Game.Nodes.Presentation
 			}
 
 			BindPreview(definition);
+
+#if UNITY_EDITOR
+			if (!Application.isPlaying)
+			{
+				editorPreviewHash = CalculateEditorPreviewHash();
+			}
+#endif
 		}
 
 		private void BindPreview(NodeJsonDefinition jsonDefinition)

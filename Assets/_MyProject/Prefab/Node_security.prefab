@@ -2155,7 +2155,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Presentation.NodeView
   jsonDefinition: {fileID: 11400000, guid: c4dd4cc63b8e75e4aa98f53c9daff82a, type: 2}
-  bindJsonOnEnable: 1
+  bindJsonOnEnable: 0
   previewJsonInEditor: 1
   rectTransform: {fileID: 2166136009867617964}
   backgroundImage: {fileID: 5835070013057795057}

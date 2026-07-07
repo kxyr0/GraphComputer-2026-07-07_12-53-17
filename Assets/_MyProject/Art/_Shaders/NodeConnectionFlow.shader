@@ -3,18 +3,27 @@ Shader "UI/NodeConnectionFlow"
 	Properties
 	{
 		[PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
-		_Color ("Base Color", Color) = (0.1, 1, 0.95, 1)
 
-		_PulseColor ("Pulse Color", Color) = (1, 0.75, 0.05, 1)
+		_Color ("Base Color", Color) = (0.1, 1, 0.95, 1)
+		_BaseAlpha ("Base Alpha", Range(0, 1)) = 0.85
+		_BaseIntensity ("Base Intensity", Range(0, 3)) = 1
+
+		_PulseColor ("Pulse Color", Color) = (1, 0.78, 0.08, 1)
+		_PulseIntensity ("Pulse Intensity", Range(0, 8)) = 2.8
+
 		_FlowSpeed ("Flow Speed", Float) = 0.55
+		_FlowOffset ("Flow Offset", Range(0, 1)) = 0
+		_FlowDirection ("Flow Direction", Range(-1, 1)) = 1
+
+		_PulseCount ("Pulse Count", Range(1, 8)) = 1
 		_PulseSize ("Pulse Size", Range(0.005, 0.25)) = 0.045
 		_PulseSoftness ("Pulse Softness", Range(0.01, 1)) = 0.35
-		_PulseIntensity ("Pulse Intensity", Range(0, 5)) = 2.4
 
 		_TrailLength ("Trail Length", Range(0, 1)) = 0.18
-		_TrailIntensity ("Trail Intensity", Range(0, 2)) = 0.55
+		_TrailIntensity ("Trail Intensity", Range(0, 3)) = 0.65
 
-		_BaseAlpha ("Base Alpha", Range(0, 1)) = 1
+		_EdgeSoftness ("Edge Softness", Range(0.001, 0.5)) = 0.18
+		_EndFade ("End Fade", Range(0, 0.5)) = 0.04
 
 		[HideInInspector] _StencilComp ("Stencil Comparison", Float) = 8
 		[HideInInspector] _Stencil ("Stencil ID", Float) = 0
@@ -22,18 +31,18 @@ Shader "UI/NodeConnectionFlow"
 		[HideInInspector] _StencilWriteMask ("Stencil Write Mask", Float) = 255
 		[HideInInspector] _StencilReadMask ("Stencil Read Mask", Float) = 255
 		[HideInInspector] _ColorMask ("Color Mask", Float) = 15
-		[HideInInspector] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
+		[HideInInspector] _UseUIAlphaClip ("Use UI Alpha Clip", Float) = 0
 	}
 
 	SubShader
 	{
 		Tags
 		{
-			"Queue"="Transparent"
-			"IgnoreProjector"="True"
-			"RenderType"="Transparent"
-			"PreviewType"="Plane"
-			"CanUseSpriteAtlas"="True"
+			"Queue" = "Transparent"
+			"IgnoreProjector" = "True"
+			"RenderType" = "Transparent"
+			"PreviewType" = "Plane"
+			"CanUseSpriteAtlas" = "True"
 		}
 
 		Stencil
@@ -85,23 +94,34 @@ Shader "UI/NodeConnectionFlow"
 			};
 
 			sampler2D _MainTex;
+
 			fixed4 _Color;
 			fixed4 _PulseColor;
 
+			float _BaseAlpha;
+			float _BaseIntensity;
+
+			float _PulseIntensity;
 			float _FlowSpeed;
+			float _FlowOffset;
+			float _FlowDirection;
+
+			float _PulseCount;
 			float _PulseSize;
 			float _PulseSoftness;
-			float _PulseIntensity;
 
 			float _TrailLength;
 			float _TrailIntensity;
 
-			float _BaseAlpha;
+			float _EdgeSoftness;
+			float _EndFade;
+
 			float4 _ClipRect;
 
 			v2f vert(appdata_t v)
 			{
 				v2f OUT;
+
 				UNITY_SETUP_INSTANCE_ID(v);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
 
@@ -115,43 +135,76 @@ Shader "UI/NodeConnectionFlow"
 
 			fixed4 frag(v2f IN) : SV_Target
 			{
-				fixed4 color = IN.color * tex2D(_MainTex, IN.uv);
+				fixed4 tex = tex2D(_MainTex, IN.uv);
+				fixed4 baseColor = IN.color * tex;
 
-				float lineProgress = saturate(IN.uv.x);
+				float rawProgress = saturate(IN.uv.x);
 				float side = saturate(IN.uv.y);
 
-				float phase = frac(_Time.y * _FlowSpeed);
+				float direction01 = step(0.0, _FlowDirection);
+				float progress = lerp(1.0 - rawProgress, rawProgress, direction01);
 
-				float dx = abs(lineProgress - phase);
+				float sideDistance = abs(side - 0.5) * 2.0;
+
+				float edgeSoftness = max(_EdgeSoftness, 0.001);
+				float lineAlpha = 1.0 - smoothstep(1.0 - edgeSoftness, 1.0, sideDistance);
+
+				float endFadeSize = max(_EndFade, 0.0001);
+				float endFade =
+					smoothstep(0.0, endFadeSize, rawProgress) *
+					smoothstep(0.0, endFadeSize, 1.0 - rawProgress);
+
+				float pulseCount = max(_PulseCount, 1.0);
+				float pulseSpace = frac(progress * pulseCount);
+
+				float phase = frac(_Time.y * _FlowSpeed + _FlowOffset);
+
+				float dx = abs(pulseSpace - phase);
 				dx = min(dx, 1.0 - dx);
 
-				float dy = abs(side - 0.5) * 2.0;
-
 				float normalizedX = dx / max(_PulseSize, 0.0001);
-				float circleDistance = length(float2(normalizedX, dy));
+				float circleDistance = length(float2(normalizedX, sideDistance));
 
-				float dot = 1.0 - smoothstep(_PulseSoftness, 1.0, circleDistance);
+				float pulse =
+					1.0 - smoothstep(_PulseSoftness, 1.0, circleDistance);
 
-				float behind = frac(phase - lineProgress);
-				float trail = 1.0 - smoothstep(0.0, max(_TrailLength, 0.0001), behind);
-				trail *= 1.0 - saturate(dy * 0.65);
-				trail *= _TrailIntensity;
+				pulse *= endFade;
 
-				float flow = saturate(max(dot, trail));
+				float behind = frac(phase - pulseSpace);
 
-				color.rgb = lerp(color.rgb, _PulseColor.rgb, saturate(flow * _PulseIntensity));
-				color.a *= _BaseAlpha;
-				color.a = max(color.a, _PulseColor.a * dot * 0.9);
+				float trail = 1.0 - smoothstep(
+					0.0,
+					max(_TrailLength, 0.0001),
+					behind
+				);
+
+				trail *= 1.0 - saturate(sideDistance * 0.75);
+				trail *= endFade;
+
+				float flowAmount = saturate(
+					pulse * _PulseIntensity +
+					trail * _TrailIntensity
+				);
+
+				fixed4 finalColor = baseColor;
+
+				finalColor.rgb *= _BaseIntensity;
+				finalColor.rgb += _PulseColor.rgb * flowAmount;
+
+				float baseAlpha = baseColor.a * _BaseAlpha * lineAlpha;
+				float pulseAlpha = _PulseColor.a * saturate(pulse + trail * 0.45);
+
+				finalColor.a = max(baseAlpha, pulseAlpha);
 
 				#ifdef UNITY_UI_CLIP_RECT
-				color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
+				finalColor.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
 				#endif
 
 				#ifdef UNITY_UI_ALPHACLIP
-				clip(color.a - 0.001);
+				clip(finalColor.a - 0.001);
 				#endif
 
-				return color;
+				return finalColor;
 			}
 			ENDCG
 		}
