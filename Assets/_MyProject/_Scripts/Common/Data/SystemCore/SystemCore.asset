@@ -21,17 +21,17 @@ MonoBehaviour:
     \"0%\"\n    },\n    {\n      \"label\": \"Memory Usage\",\n      \"value\": \"0%\"\n   
     },\n    {\n      \"label\": \"Storage Usage\",\n      \"value\": \"0%\"\n   
     }\n  ],\n  \"ports\": [\n    {\n      \"id\": \"data\",\n      \"label\": \"Data\",\n     
-    \"direction\": \"Output\",\n      \"color\": \"#19FFF5\",\n      \"signalType\":
+    \"direction\": \"Output\",\n      \"color\": \"#4DA3FF\",\n      \"signalType\":
     \"System\",\n      \"allowedTargetNodeIds\": [\n        \"data\"\n      ],\n     
     \"allowedTargetPortIds\": [\n        \"system_core\"\n      ]\n    },\n    {\n     
     \"id\": \"security\",\n      \"label\": \"Security\",\n      \"direction\": \"Output\",\n     
-    \"color\": \"#19FFF5\",\n      \"signalType\": \"System\",\n      \"allowedTargetNodeIds\":
+    \"color\": \"#FF5C7A\",\n      \"signalType\": \"System\",\n      \"allowedTargetNodeIds\":
     [\n        \"security\"\n      ],\n      \"allowedTargetPortIds\": [\n       
     \"system_core\"\n      ]\n    },\n    {\n      \"id\": \"control\",\n      \"label\":
-    \"Control\",\n      \"direction\": \"Output\",\n      \"color\": \"#19FFF5\",\n     
+    \"Control\",\n      \"direction\": \"Output\",\n      \"color\": \"#B678FF\",\n     
     \"signalType\": \"System\",\n      \"allowedTargetNodeIds\": [\n        \"control\"\n     
     ],\n      \"allowedTargetPortIds\": [\n        \"system_core\"\n      ]\n   
     },\n    {\n      \"id\": \"kernel\",\n      \"label\": \"Kernel\",\n      \"direction\":
-    \"Output\",\n      \"color\": \"#19FFF5\",\n      \"signalType\": \"System\",\n     
+    \"Output\",\n      \"color\": \"#FFD166\",\n      \"signalType\": \"System\",\n     
     \"allowedTargetNodeIds\": [\n        \"kernel\"\n      ],\n      \"allowedTargetPortIds\":
     [\n        \"system_core\"\n      ]\n    }\n  ]\n}"

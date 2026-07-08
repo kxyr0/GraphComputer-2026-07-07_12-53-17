@@ -67,7 +67,8 @@ namespace Game.Nodes.Presentation
 			isDragging = true;
 
 			previewConnection = CreateConnectionView("Connection_Preview");
-			previewConnection.BindPreview(sourcePort.ConnectorRect, previewColor);
+			Color sourceColor = sourcePort.PortColor;
+			previewConnection.BindPreview(sourcePort.ConnectorRect, sourceColor);
 			previewConnection.SetPreviewEndScreen(eventData.position, eventData.pressEventCamera);
 		}
 
@@ -83,7 +84,9 @@ namespace Game.Nodes.Presentation
 			}
 
 			previewConnection.SetPreviewEndScreen(eventData.position, eventData.pressEventCamera);
-			previewConnection.color = IsValidTarget(sourcePort, hoveredPort) ? validColor : previewColor;
+			previewConnection.color = sourcePort != null
+				? sourcePort.PortColor
+				: previewColor;
 		}
 
 		public void EndDrag(PointerEventData eventData)
@@ -194,9 +197,13 @@ namespace Game.Nodes.Presentation
 				$"Connection_{data.FromNodeId}_{data.FromPortId}_To_{data.ToNodeId}_{data.ToPortId}"
 			);
 
-			connectionView.Bind(data, from.ConnectorRect, to.ConnectorRect, validColor);
+			Color connectionColor = from.PortColor;
 
+			connectionView.Bind(data, from.ConnectorRect, to.ConnectorRect, connectionColor);
 			connectionView.Clicked += HandleConnectionClicked;
+
+			// Input получает тот же цвет, что и output.
+			to.SetConnectionColor(connectionColor);
 
 			runtimeConnections.Add(new RuntimeConnection(data, from, to, connectionView));
 
@@ -388,12 +395,44 @@ namespace Game.Nodes.Presentation
 				}
 
 				connection.View.Clicked -= HandleConnectionClicked;
+
+				if (!HasAnotherConnectionToInput(connection.To, connection.Data.Id))
+				{
+					connection.To.ResetConnectionColor();
+				}
+
 				Destroy(connection.View.gameObject);
 				runtimeConnections.RemoveAt(i);
 
 				Debug.Log($"[{nameof(NodeConnectionDragController)}] Deleted connection: {data.Id}", this);
 				return;
 			}
+		}
+		private bool HasAnotherConnectionToInput(
+			GeneratedNodePortView inputPort,
+			string ignoredConnectionId)
+		{
+			foreach (RuntimeConnection connection in runtimeConnections)
+			{
+				if (connection.To != inputPort)
+				{
+					continue;
+				}
+
+				if (connection.Data == null)
+				{
+					continue;
+				}
+
+				if (connection.Data.Id == ignoredConnectionId)
+				{
+					continue;
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

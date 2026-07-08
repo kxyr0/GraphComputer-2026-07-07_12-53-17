@@ -1,3 +1,4 @@
+using Game.UI.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -39,6 +40,9 @@ namespace Features.Camera.Presentation
 		[Header("Shortcuts")]
 		[SerializeField] private bool resetViewWithHome = true;
 
+		[Header("UI Block")]
+		[SerializeField] private bool blockMouseWhenOverUi = true;
+
 		private UnityEngine.Camera targetCamera;
 
 		private Vector3 startPosition;
@@ -66,6 +70,7 @@ namespace Features.Camera.Presentation
 				isDragging = false;
 				return;
 			}
+
 			if (targetCamera == null)
 			{
 				return;
@@ -153,6 +158,12 @@ namespace Features.Camera.Presentation
 				return;
 			}
 
+			if (ShouldBlockMouseCameraInput())
+			{
+				isDragging = false;
+				return;
+			}
+
 			ButtonControl button = GetDragButton(mouse);
 
 			if (button.wasPressedThisFrame)
@@ -195,6 +206,11 @@ namespace Features.Camera.Presentation
 			Mouse mouse = Mouse.current;
 
 			if (mouse == null || !targetCamera.orthographic)
+			{
+				return;
+			}
+
+			if (ShouldBlockMouseCameraInput())
 			{
 				return;
 			}
@@ -332,6 +348,12 @@ namespace Features.Camera.Presentation
 		{
 			delta.z = 0f;
 			transform.position += delta;
+		}
+
+		private bool ShouldBlockMouseCameraInput()
+		{
+			return blockMouseWhenOverUi &&
+				   UiPointerBlockUtility.IsPointerOverBlockingUi();
 		}
 
 		private void OnValidate()

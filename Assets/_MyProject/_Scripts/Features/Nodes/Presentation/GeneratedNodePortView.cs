@@ -32,7 +32,9 @@ namespace Game.Nodes.Presentation
 		[SerializeField] private TextAnchor childAlignment = TextAnchor.MiddleRight;
 		[SerializeField] private TextAlignmentOptions textAlignment = TextAlignmentOptions.Right;
 		[SerializeField] private float spacing = 8f;
+		public Color PortColor { get; private set; } = Color.cyan;
 
+		private Color defaultConnectorColor = Color.cyan;
 		private NodeConnectionDragController dragController;
 
 		public NodeView Owner { get; private set; }
@@ -99,15 +101,31 @@ namespace Game.Nodes.Presentation
 				labelText.raycastTarget = true;
 			}
 
+			PortColor = ParseColor(port.color, Color.cyan);
+			defaultConnectorColor = PortColor;
+
 			if (connectorImage != null)
 			{
-				connectorImage.color = ParseColor(port.color, connectorImage.color);
-				connectorImage.raycastTarget = true;
+				connectorImage.color = PortColor;
 			}
 
 			ApplyLayout();
 		}
+		public void SetConnectionColor(Color color)
+		{
+			if (connectorImage != null)
+			{
+				connectorImage.color = color;
+			}
+		}
 
+		public void ResetConnectionColor()
+		{
+			if (connectorImage != null)
+			{
+				connectorImage.color = defaultConnectorColor;
+			}
+		}
 		public void OnPointerEnter(PointerEventData eventData)
 		{
 			dragController?.SetHoveredPort(this);

@@ -15,10 +15,10 @@ MonoBehaviour:
   json: "{\n  \"id\": \"control\",\n  \"title\": \"Control\",\n  \"size\": {\n   
     \"x\": 560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
     \"#102333DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
-    \"stats\": [\n    {\n      \"label\": \"Device Support\",\n      \"value\": \"54%\"\n   
-    },\n    {\n      \"label\": \"Input Delay\",\n      \"value\": \"8ms\"\n    },\n   
-    {\n      \"label\": \"Audio Layer\",\n      \"value\": \"Basic\"\n    },\n   
-    {\n      \"label\": \"Power Control\",\n      \"value\": \"41%\"\n    }\n  ],\n 
+    \"stats\": [\n    {\n      \"label\": \"Device Support\",\n      \"value\": \"0%\"\n   
+    },\n    {\n      \"label\": \"Input Delay\",\n      \"value\": \"0ms\"\n    },\n   
+    {\n      \"label\": \"Audio Layer\",\n      \"value\": \"None\"\n    },\n   
+    {\n      \"label\": \"Power Control\",\n      \"value\": \"0%\"\n    }\n  ],\n 
     \"ports\": [\n    {\n      \"id\": \"system_core\",\n      \"label\": \"System
     Core\",\n      \"direction\": \"Input\",\n      \"color\": \"#FFAA22\"\n    },\n   
     {\n      \"id\": \"display\",\n      \"label\": \"Display\",\n      \"direction\":

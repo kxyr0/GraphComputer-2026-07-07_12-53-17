@@ -15,11 +15,11 @@ MonoBehaviour:
   json: "{\n  \"id\": \"firewall\",\n  \"title\": \"Firewall\",\n  \"size\": {\n   
     \"x\": 560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
     \"#102333DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
-    \"stats\": [\n    {\n      \"label\": \"Protection\",\n      \"value\": \"Basic\"\n   
-    },\n    {\n      \"label\": \"Blocked Ports\",\n      \"value\": \"12\"\n   
-    },\n    {\n      \"label\": \"Traffic Scan\",\n      \"value\": \"31%\"\n   
-    },\n    {\n      \"label\": \"False Blocks\",\n      \"value\": \"4%\"\n    }\n 
-    ],\n  \"ports\": [\n    {\n      \"id\": \"security\",\n      \"label\": \"Security\",\n     
+    \"stats\": [\n    {\n      \"label\": \"Protection\",\n      \"value\": \"None\"\n   
+    },\n    {\n      \"label\": \"Blocked Ports\",\n      \"value\": \"0\"\n    },\n   
+    {\n      \"label\": \"Traffic Scan\",\n      \"value\": \"0\"\n    },\n    {\n     
+    \"label\": \"False Blocks\",\n      \"value\": \"0\"\n    }\n  ],\n  \"ports\":
+    [\n    {\n      \"id\": \"security\",\n      \"label\": \"Security\",\n     
     \"direction\": \"Input\",\n      \"color\": \"#FFAA22\"\n    },\n    {\n     
     \"id\": \"rules\",\n      \"label\": \"Rules\",\n      \"direction\": \"Output\",\n     
     \"color\": \"#19FFF5\"\n    },\n    {\n      \"id\": \"traffic_filter\",\n     

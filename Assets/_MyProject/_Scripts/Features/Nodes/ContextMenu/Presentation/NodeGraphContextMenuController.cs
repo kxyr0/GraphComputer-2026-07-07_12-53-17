@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Nodes.Composition;
 using Game.Nodes.Definitions;
@@ -11,6 +12,8 @@ namespace Game.Nodes.Presentation
 	[DisallowMultipleComponent]
 	public sealed class NodeGraphContextMenuController : MonoBehaviour, IPointerClickHandler
 	{
+		private const string BackCategoryId = "__back";
+
 		[SerializeField] private NodeCatalog nodeCatalog;
 		[SerializeField] private NodeFactory nodeFactory;
 
@@ -21,18 +24,26 @@ namespace Game.Nodes.Presentation
 		[SerializeField] private RectTransform menuPanel;
 		[SerializeField] private RectTransform itemsRoot;
 		[SerializeField] private NodeSpawnMenuItemView itemPrefab;
+		[SerializeField] private NodeSpawnCategoryItemView categoryPrefab;
 		[SerializeField] private bool hideAfterSpawn = true;
+
+		[Header("Categories")]
+		[SerializeField] private bool useCategories = true;
+		[SerializeField] private bool autoOpenSingleCategory = true;
+		[SerializeField] private bool showBackButton = true;
 
 		[Header("Animation")]
 		[SerializeField] private NodePopupScaleAnimator popupAnimator;
 
-		private readonly List<NodeSpawnMenuItemView> spawnedItems = new();
+		private readonly List<Component> spawnedViews = new List<Component>();
 
 		private Canvas canvas;
 		private CanvasGroup menuCanvasGroup;
 		private Camera lastEventCamera;
 		private Vector2 pendingSpawnPosition;
 		private bool isMenuOpen;
+
+		private string activeCategoryId;
 
 		private GeneratedNodePortView pendingConnectionSourcePort;
 		private NodeConnectionDragController pendingConnectionController;
@@ -107,6 +118,7 @@ namespace Game.Nodes.Presentation
 			{
 				return;
 			}
+
 			if (eventData.button != PointerEventData.InputButton.Right)
 			{
 				return;
@@ -150,6 +162,7 @@ namespace Game.Nodes.Presentation
 			}
 
 			lastEventCamera = eventCamera;
+			activeCategoryId = string.Empty;
 
 			RectTransformUtility.ScreenPointToLocalPointInRectangle(
 				nodesRoot,
@@ -193,6 +206,34 @@ namespace Game.Nodes.Presentation
 				return;
 			}
 
+			List<NodeDefinition> visibleDefinitions = CollectVisibleDefinitions(definitions);
+
+			if (!useCategories || categoryPrefab == null)
+			{
+				BuildFlatMenu(visibleDefinitions);
+				return;
+			}
+
+			List<NodeSpawnCategoryGroup> groups = BuildGroups(visibleDefinitions);
+
+			if (groups.Count == 1 && autoOpenSingleCategory)
+			{
+				activeCategoryId = groups[0].Category.Id;
+			}
+
+			if (string.IsNullOrWhiteSpace(activeCategoryId))
+			{
+				BuildCategoryRoot(groups);
+				return;
+			}
+
+			BuildCategoryContent(groups, activeCategoryId);
+		}
+
+		private List<NodeDefinition> CollectVisibleDefinitions(IReadOnlyList<NodeDefinition> definitions)
+		{
+			List<NodeDefinition> result = new List<NodeDefinition>();
+
 			foreach (NodeDefinition definition in definitions)
 			{
 				if (definition == null)
@@ -205,14 +246,164 @@ namespace Game.Nodes.Presentation
 					continue;
 				}
 
-				NodeSpawnMenuItemView item = Instantiate(itemPrefab, itemsRoot);
-				item.gameObject.name = $"SpawnItem_{definition.Id}";
-
-				PrepareGeneratedButton(item);
-				item.Bind(definition, SpawnNodeFromMenu);
-
-				spawnedItems.Add(item);
+				result.Add(definition);
 			}
+
+			return result;
+		}
+
+		private void BuildFlatMenu(List<NodeDefinition> definitions)
+		{
+			foreach (NodeDefinition definition in definitions)
+			{
+				CreateNodeItem(definition);
+			}
+		}
+
+		private List<NodeSpawnCategoryGroup> BuildGroups(List<NodeDefinition> definitions)
+		{
+			Dictionary<string, NodeSpawnCategoryGroup> groupsById =
+				new Dictionary<string, NodeSpawnCategoryGroup>(StringComparer.OrdinalIgnoreCase);
+
+			foreach (NodeDefinition definition in definitions)
+			{
+				NodeSpawnCategory category = ResolveCategory(definition);
+
+				if (!groupsById.TryGetValue(category.Id, out NodeSpawnCategoryGroup group))
+				{
+					group = new NodeSpawnCategoryGroup(category);
+					groupsById.Add(category.Id, group);
+				}
+
+				group.Definitions.Add(definition);
+			}
+
+			List<NodeSpawnCategoryGroup> groups = new List<NodeSpawnCategoryGroup>(groupsById.Values);
+
+			groups.Sort((a, b) => a.Category.Order.CompareTo(b.Category.Order));
+
+			foreach (NodeSpawnCategoryGroup group in groups)
+			{
+				group.Definitions.Sort((a, b) => string.Compare(
+					a.Title,
+					b.Title,
+					StringComparison.OrdinalIgnoreCase));
+			}
+
+			return groups;
+		}
+
+		private void BuildCategoryRoot(List<NodeSpawnCategoryGroup> groups)
+		{
+			foreach (NodeSpawnCategoryGroup group in groups)
+			{
+				CreateCategoryItem(
+					group.Category.Id,
+					group.Category.Title,
+					group.Definitions.Count,
+					false,
+					HandleCategoryClicked
+				);
+			}
+		}
+
+		private void BuildCategoryContent(List<NodeSpawnCategoryGroup> groups, string categoryId)
+		{
+			NodeSpawnCategoryGroup group = FindGroup(groups, categoryId);
+
+			if (group == null)
+			{
+				activeCategoryId = string.Empty;
+				BuildCategoryRoot(groups);
+				return;
+			}
+
+			if (showBackButton)
+			{
+				CreateCategoryItem(
+					BackCategoryId,
+					"Categories",
+					-1,
+					false,
+					HandleCategoryClicked
+				);
+			}
+
+			foreach (NodeDefinition definition in group.Definitions)
+			{
+				CreateNodeItem(definition);
+			}
+		}
+
+		private NodeSpawnCategoryGroup FindGroup(List<NodeSpawnCategoryGroup> groups, string categoryId)
+		{
+			foreach (NodeSpawnCategoryGroup group in groups)
+			{
+				if (string.Equals(
+						group.Category.Id,
+						categoryId,
+						StringComparison.OrdinalIgnoreCase))
+				{
+					return group;
+				}
+			}
+
+			return null;
+		}
+
+		private void CreateCategoryItem(
+			string id,
+			string title,
+			int count,
+			bool selected,
+			Action<string> clicked)
+		{
+			NodeSpawnCategoryItemView item = Instantiate(categoryPrefab, itemsRoot);
+			item.gameObject.name = $"Category_{id}";
+			PrepareGeneratedItem(item.gameObject);
+
+			item.Bind(
+				id,
+				title,
+				count,
+				selected,
+				clicked
+			);
+
+			spawnedViews.Add(item);
+		}
+
+		private void CreateNodeItem(NodeDefinition definition)
+		{
+			NodeSpawnMenuItemView item = Instantiate(itemPrefab, itemsRoot);
+			item.gameObject.name = $"SpawnItem_{definition.Id}";
+
+			PrepareGeneratedItem(item.gameObject);
+			item.Bind(definition, SpawnNodeFromMenu);
+
+			spawnedViews.Add(item);
+		}
+
+		private void HandleCategoryClicked(string categoryId)
+		{
+			if (string.IsNullOrWhiteSpace(categoryId))
+			{
+				return;
+			}
+
+			if (categoryId == BackCategoryId)
+			{
+				activeCategoryId = string.Empty;
+			}
+			else
+			{
+				activeCategoryId = categoryId;
+			}
+
+			BuildMenu();
+
+			Canvas.ForceUpdateCanvases();
+			ClampMenuToParent();
 		}
 
 		private bool CanShowNodeInCurrentMenu(NodeDefinition definition)
@@ -228,20 +419,20 @@ namespace Game.Nodes.Presentation
 			);
 		}
 
-		private void PrepareGeneratedButton(NodeSpawnMenuItemView item)
+		private void PrepareGeneratedItem(GameObject item)
 		{
 			if (item == null)
 			{
 				return;
 			}
 
-			item.gameObject.SetActive(true);
+			item.SetActive(true);
 
 			CanvasGroup group = item.GetComponent<CanvasGroup>();
 
 			if (group == null)
 			{
-				group = item.gameObject.AddComponent<CanvasGroup>();
+				group = item.AddComponent<CanvasGroup>();
 			}
 
 			group.alpha = 1f;
@@ -252,7 +443,7 @@ namespace Game.Nodes.Presentation
 
 			if (layoutElement == null)
 			{
-				layoutElement = item.gameObject.AddComponent<LayoutElement>();
+				layoutElement = item.AddComponent<LayoutElement>();
 			}
 
 			layoutElement.ignoreLayout = false;
@@ -309,6 +500,34 @@ namespace Game.Nodes.Presentation
 					this
 				);
 			}
+		}
+
+		private NodeSpawnCategory ResolveCategory(NodeDefinition definition)
+		{
+			string id = definition.Id?.ToLowerInvariant() ?? string.Empty;
+
+			return id switch
+			{
+				"system_core" or "kernel" or "data" or "security" or "control"
+					=> new NodeSpawnCategory("core", "Core", 0),
+
+				"memory_manager" or "process_manager" or "scheduler" or "kernel_recovery"
+					=> new NodeSpawnCategory("kernel", "Kernel", 10),
+
+				"file_system" or "backup" or "compression" or "recovery"
+					=> new NodeSpawnCategory("data", "Data", 20),
+
+				"firewall" or "permissions" or "antivirus" or "encryption"
+					=> new NodeSpawnCategory("security", "Security", 30),
+
+				"display_manager" or "sound" or "devices" or "power"
+					=> new NodeSpawnCategory("control", "Control", 40),
+
+				"time" or "news" or "era_news" or "docs"
+					=> new NodeSpawnCategory("world", "World", 50),
+
+				_ => new NodeSpawnCategory("other", "Other", 999)
+			};
 		}
 
 		private void MoveMenuToScreenPosition(Vector2 screenPosition, Camera eventCamera)
@@ -370,6 +589,7 @@ namespace Game.Nodes.Presentation
 			}
 
 			isMenuOpen = false;
+			activeCategoryId = string.Empty;
 			ClearPendingConnection();
 
 			if (popupAnimator != null)
@@ -391,6 +611,7 @@ namespace Game.Nodes.Presentation
 		private void HideImmediate()
 		{
 			isMenuOpen = false;
+			activeCategoryId = string.Empty;
 			ClearPendingConnection();
 
 			if (popupAnimator != null)
@@ -409,19 +630,19 @@ namespace Game.Nodes.Presentation
 
 		private void ClearItems()
 		{
-			for (int i = spawnedItems.Count - 1; i >= 0; i--)
+			for (int i = spawnedViews.Count - 1; i >= 0; i--)
 			{
-				NodeSpawnMenuItemView item = spawnedItems[i];
+				Component view = spawnedViews[i];
 
-				if (item == null)
+				if (view == null)
 				{
 					continue;
 				}
 
-				Destroy(item.gameObject);
+				Destroy(view.gameObject);
 			}
 
-			spawnedItems.Clear();
+			spawnedViews.Clear();
 		}
 
 		private void ClearPendingConnection()
@@ -432,29 +653,35 @@ namespace Game.Nodes.Presentation
 
 		private void HideTemplateWithoutDisabling()
 		{
-			if (itemPrefab == null)
+			HideTemplate(itemPrefab != null ? itemPrefab.gameObject : null);
+			HideTemplate(categoryPrefab != null ? categoryPrefab.gameObject : null);
+		}
+
+		private void HideTemplate(GameObject template)
+		{
+			if (template == null)
 			{
 				return;
 			}
 
-			itemPrefab.gameObject.SetActive(true);
+			template.SetActive(true);
 
-			CanvasGroup templateGroup = itemPrefab.GetComponent<CanvasGroup>();
+			CanvasGroup group = template.GetComponent<CanvasGroup>();
 
-			if (templateGroup == null)
+			if (group == null)
 			{
-				templateGroup = itemPrefab.gameObject.AddComponent<CanvasGroup>();
+				group = template.AddComponent<CanvasGroup>();
 			}
 
-			templateGroup.alpha = 0f;
-			templateGroup.interactable = false;
-			templateGroup.blocksRaycasts = false;
+			group.alpha = 0f;
+			group.interactable = false;
+			group.blocksRaycasts = false;
 
-			LayoutElement layoutElement = itemPrefab.GetComponent<LayoutElement>();
+			LayoutElement layoutElement = template.GetComponent<LayoutElement>();
 
 			if (layoutElement == null)
 			{
-				layoutElement = itemPrefab.gameObject.AddComponent<LayoutElement>();
+				layoutElement = template.AddComponent<LayoutElement>();
 			}
 
 			layoutElement.ignoreLayout = true;
@@ -473,6 +700,31 @@ namespace Game.Nodes.Presentation
 			}
 
 			return null;
+		}
+
+		private readonly struct NodeSpawnCategory
+		{
+			public readonly string Id;
+			public readonly string Title;
+			public readonly int Order;
+
+			public NodeSpawnCategory(string id, string title, int order)
+			{
+				Id = id;
+				Title = title;
+				Order = order;
+			}
+		}
+
+		private sealed class NodeSpawnCategoryGroup
+		{
+			public readonly NodeSpawnCategory Category;
+			public readonly List<NodeDefinition> Definitions = new List<NodeDefinition>();
+
+			public NodeSpawnCategoryGroup(NodeSpawnCategory category)
+			{
+				Category = category;
+			}
 		}
 	}
 }
