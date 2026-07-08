@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using Game.IDE.Runtime;
 namespace Game.IDE.Presentation
 {
 	public sealed class IdeBuildReport
@@ -288,7 +288,10 @@ namespace Game.IDE.Presentation
 			for (int i = 0; i < lines.Length; i++)
 			{
 				string line = CleanLine(lines[i]);
-
+				if (TimeModuleSpeedParser.IsTimeSpeedLine(line))
+				{
+					continue;
+				}
 				if (string.IsNullOrWhiteSpace(line))
 				{
 					continue;

@@ -19,6 +19,9 @@ namespace Game.IDE.Presentation
 		[Header("Code State")]
 		[SerializeField] private NodeCodeRegistry codeRegistry;
 
+		[Header("Module Effects")]
+		[SerializeField] private TimeModuleSpeedApplier timeModuleSpeedApplier;
+
 		[Header("Output")]
 		[SerializeField] private string outputTabId = "output";
 		[SerializeField] private bool clearOutputBeforeBuild = true;
@@ -37,17 +40,22 @@ namespace Game.IDE.Presentation
 
 			if (codeRegistry == null)
 			{
-				codeRegistry = FindFirstObjectByType<NodeCodeRegistry>();
+				codeRegistry = FindFirstObjectByType<NodeCodeRegistry>(FindObjectsInactive.Include);
 			}
 
 			if (codeTabsController == null)
 			{
-				codeTabsController = FindFirstObjectByType<IdeCodeTabsController>();
+				codeTabsController = FindFirstObjectByType<IdeCodeTabsController>(FindObjectsInactive.Include);
 			}
 
 			if (bottomTabsController == null)
 			{
-				bottomTabsController = FindFirstObjectByType<IdeBottomTabsController>();
+				bottomTabsController = FindFirstObjectByType<IdeBottomTabsController>(FindObjectsInactive.Include);
+			}
+
+			if (timeModuleSpeedApplier == null)
+			{
+				timeModuleSpeedApplier = FindFirstObjectByType<TimeModuleSpeedApplier>(FindObjectsInactive.Include);
 			}
 		}
 
@@ -99,6 +107,10 @@ namespace Game.IDE.Presentation
 			string code = codeEditor.GetCode();
 			IdeBuildReport report = IdeBuildAnalyzer.Analyze(code);
 
+			string documentId = codeTabsController != null
+				? codeTabsController.ActiveDocumentId
+				: "unknown_document";
+
 			if (codeRegistry == null)
 			{
 				codeRegistry = NodeCodeRegistry.Instance;
@@ -109,16 +121,28 @@ namespace Game.IDE.Presentation
 				codeRegistry = FindFirstObjectByType<NodeCodeRegistry>(FindObjectsInactive.Include);
 			}
 
-			string documentId = codeTabsController != null
-				? codeTabsController.ActiveDocumentId
-				: "unknown_document";
-
 			if (codeRegistry != null)
 			{
 				codeRegistry.SaveBuildResult(
 					documentId,
 					code,
 					report
+				);
+			}
+
+			bool buildSucceeded = report.Errors == null || report.Errors.Count == 0;
+
+			if (timeModuleSpeedApplier == null)
+			{
+				timeModuleSpeedApplier = FindFirstObjectByType<TimeModuleSpeedApplier>(FindObjectsInactive.Include);
+			}
+
+			if (timeModuleSpeedApplier != null)
+			{
+				timeModuleSpeedApplier.TryApply(
+					documentId,
+					code,
+					buildSucceeded
 				);
 			}
 

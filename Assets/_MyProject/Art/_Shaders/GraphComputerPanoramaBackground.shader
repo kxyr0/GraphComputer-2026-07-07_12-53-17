@@ -2,38 +2,44 @@ Shader "GraphComputer/World/Panorama Background"
 {
 	Properties
 	{
-		[Header(Base Gradient)]
-		_TopColor ("Top Color", Color) = (0.105, 0.110, 0.205, 1)
-		_BottomColor ("Bottom Color", Color) = (0.035, 0.040, 0.095, 1)
-		_HorizonColor ("Horizon Color", Color) = (0.050, 0.900, 1.000, 1)
-		_HorizonStrength ("Horizon Strength", Range(0, 1)) = 0.18
+		[Header(Base Fill)]
+		_BaseColor ("Base Color", Color) = (0.105, 0.108, 0.180, 1)
+		_TopTint ("Top Tint", Color) = (0.120, 0.120, 0.250, 1)
+		_BottomTint ("Bottom Tint", Color) = (0.045, 0.050, 0.110, 1)
+		_GradientStrength ("Gradient Strength", Range(0, 1)) = 0.55
 
-		[Header(Nebula)]
-		_NebulaAColor ("Nebula A", Color) = (0.050, 0.900, 1.000, 1)
-		_NebulaBColor ("Nebula B", Color) = (0.850, 0.250, 1.000, 1)
-		_NebulaStrength ("Nebula Strength", Range(0, 2)) = 0.65
-		_NebulaScale ("Nebula Scale", Float) = 2.2
-		_NebulaSpeed ("Nebula Speed", Float) = 0.035
+		[Header(Main Soft Glow)]
+		_CenterGlowColor ("Center Glow Color", Color) = (0.360, 0.420, 1.000, 1)
+		_CenterGlowStrength ("Center Glow Strength", Range(0, 1)) = 0.18
+		_CenterGlowSize ("Center Glow Size", Range(0.1, 3)) = 1.15
 
-		[Header(Stars)]
-		_StarColor ("Star Color", Color) = (0.800, 0.950, 1.000, 1)
-		_StarDensity ("Star Density", Range(0, 1)) = 0.055
-		_StarBrightness ("Star Brightness", Range(0, 5)) = 1.6
-		_StarTwinkleSpeed ("Star Twinkle Speed", Float) = 1.35
+		[Header(Side Accents)]
+		_LeftGlowColor ("Left Glow Color", Color) = (0.000, 0.850, 1.000, 1)
+		_LeftGlowStrength ("Left Glow Strength", Range(0, 1)) = 0.13
+		_LeftGlowSize ("Left Glow Size", Range(0.1, 3)) = 1.35
 
-		[Header(Tech Lines)]
-		_ScanlineColor ("Scanline Color", Color) = (0.100, 1.000, 0.950, 1)
-		_ScanlineStrength ("Scanline Strength", Range(0, 1)) = 0.075
-		_ScanlineScale ("Scanline Scale", Float) = 85
-		_ScanlineSpeed ("Scanline Speed", Float) = 0.18
+		_RightGlowColor ("Right Glow Color", Color) = (0.750, 0.250, 1.000, 1)
+		_RightGlowStrength ("Right Glow Strength", Range(0, 1)) = 0.11
+		_RightGlowSize ("Right Glow Size", Range(0.1, 3)) = 1.45
+
+		[Header(Subtle Band)]
+		_BandColor ("Band Color", Color) = (0.150, 1.000, 0.950, 1)
+		_BandStrength ("Band Strength", Range(0, 1)) = 0.055
+		_BandWidth ("Band Width", Range(0.05, 1.5)) = 0.42
+		_BandOffset ("Band Offset", Range(-1, 1)) = -0.08
+
+		[Header(Soft Texture)]
+		_NoiseStrength ("Noise Strength", Range(0, 0.2)) = 0.025
+		_NoiseScale ("Noise Scale", Float) = 3.5
+		_NoiseSpeed ("Noise Speed", Float) = 0.015
 
 		[Header(Camera Parallax)]
 		_CameraWorldPosition ("Camera World Position", Vector) = (0, 0, 0, 0)
-		_Parallax ("Parallax", Float) = 0.018
+		_Parallax ("Parallax", Float) = 0.006
 
 		[Header(Final)]
-		_VignetteStrength ("Vignette Strength", Range(0, 1)) = 0.48
-		_Brightness ("Brightness", Range(0, 3)) = 1.0
+		_VignetteStrength ("Vignette Strength", Range(0, 1)) = 0.38
+		_Brightness ("Brightness", Range(0, 2)) = 1.0
 		_Alpha ("Alpha", Range(0, 1)) = 1.0
 	}
 
@@ -49,12 +55,12 @@ Shader "GraphComputer/World/Panorama Background"
 		Cull Off
 		Lighting Off
 		ZWrite Off
-		ZTest LEqual
+		ZTest Always
 		Blend SrcAlpha OneMinusSrcAlpha
 
 		Pass
 		{
-			Name "Panorama Background"
+			Name "Simple Graph Background"
 
 			CGPROGRAM
 			#pragma vertex vert
@@ -74,30 +80,34 @@ Shader "GraphComputer/World/Panorama Background"
 			{
 				float4 position : SV_POSITION;
 				float2 uv : TEXCOORD0;
-				float3 worldPosition : TEXCOORD1;
 				float4 color : COLOR;
 			};
 
-			float4 _TopColor;
-			float4 _BottomColor;
-			float4 _HorizonColor;
-			float _HorizonStrength;
+			float4 _BaseColor;
+			float4 _TopTint;
+			float4 _BottomTint;
+			float _GradientStrength;
 
-			float4 _NebulaAColor;
-			float4 _NebulaBColor;
-			float _NebulaStrength;
-			float _NebulaScale;
-			float _NebulaSpeed;
+			float4 _CenterGlowColor;
+			float _CenterGlowStrength;
+			float _CenterGlowSize;
 
-			float4 _StarColor;
-			float _StarDensity;
-			float _StarBrightness;
-			float _StarTwinkleSpeed;
+			float4 _LeftGlowColor;
+			float _LeftGlowStrength;
+			float _LeftGlowSize;
 
-			float4 _ScanlineColor;
-			float _ScanlineStrength;
-			float _ScanlineScale;
-			float _ScanlineSpeed;
+			float4 _RightGlowColor;
+			float _RightGlowStrength;
+			float _RightGlowSize;
+
+			float4 _BandColor;
+			float _BandStrength;
+			float _BandWidth;
+			float _BandOffset;
+
+			float _NoiseStrength;
+			float _NoiseScale;
+			float _NoiseSpeed;
 
 			float4 _CameraWorldPosition;
 			float _Parallax;
@@ -112,7 +122,6 @@ Shader "GraphComputer/World/Panorama Background"
 
 				output.position = UnityObjectToClipPos(input.vertex);
 				output.uv = input.uv;
-				output.worldPosition = mul(unity_ObjectToWorld, input.vertex).xyz;
 				output.color = input.color;
 
 				return output;
@@ -137,130 +146,93 @@ Shader "GraphComputer/World/Panorama Background"
 
 				float2 u = f * f * (3.0 - 2.0 * f);
 
-				float ab = lerp(a, b, u.x);
-				float cd = lerp(c, d, u.x);
-
-				return lerp(ab, cd, u.y);
+				return lerp(
+					lerp(a, b, u.x),
+					lerp(c, d, u.x),
+					u.y
+				);
 			}
 
-			float Fbm(float2 p)
+			float SoftBlob(float2 uv, float2 center, float2 size)
 			{
-				float value = 0.0;
-				float amplitude = 0.5;
+				float2 delta = (uv - center) / max(size, float2(0.001, 0.001));
+				float distanceValue = dot(delta, delta);
 
-				value += Noise(p) * amplitude;
-				p *= 2.03;
-				amplitude *= 0.5;
-
-				value += Noise(p) * amplitude;
-				p *= 2.01;
-				amplitude *= 0.5;
-
-				value += Noise(p) * amplitude;
-				p *= 2.07;
-				amplitude *= 0.5;
-
-				value += Noise(p) * amplitude;
-
-				return value;
-			}
-
-			float StarLayer(float2 p, float density, float sizeMultiplier)
-			{
-				float2 cell = floor(p * density);
-				float2 localPosition = frac(p * density) - 0.5;
-
-				float randomValue = Hash21(cell);
-				float enabled = step(1.0 - _StarDensity, randomValue);
-
-				float radius = lerp(0.035, 0.080, Hash21(cell + 7.31)) * sizeMultiplier;
-				float distanceToCenter = length(localPosition);
-
-				float star = 1.0 - smoothstep(radius, radius * 1.8, distanceToCenter);
-
-				float twinkle = sin(
-					_Time.y * _StarTwinkleSpeed +
-					randomValue * 37.0
-				) * 0.5 + 0.5;
-
-				twinkle = lerp(0.55, 1.25, twinkle);
-
-				return star * enabled * twinkle;
+				return saturate(1.0 - smoothstep(0.0, 1.0, distanceValue));
 			}
 
 			float4 frag(v2f input) : SV_Target
 			{
 				float2 uv = input.uv;
 
-				float2 cameraOffset = _CameraWorldPosition.xy * _Parallax;
-				float2 panoramaPosition = uv * float2(1.8, 1.0) + cameraOffset;
+				float2 parallaxOffset = _CameraWorldPosition.xy * _Parallax;
+				float2 animatedUv = uv + parallaxOffset;
 
-				float3 background = lerp(
-					_BottomColor.rgb,
-					_TopColor.rgb,
+				float3 color = _BaseColor.rgb;
+
+				float3 verticalGradient = lerp(
+					_BottomTint.rgb,
+					_TopTint.rgb,
 					saturate(uv.y)
 				);
 
-				float horizon = 1.0 - abs(uv.y - 0.42) * 3.2;
-				horizon = saturate(horizon);
-				horizon = horizon * horizon;
-
-				background = lerp(
-					background,
-					_HorizonColor.rgb,
-					horizon * _HorizonStrength
+				color = lerp(
+					color,
+					verticalGradient,
+					_GradientStrength
 				);
 
-				float timeOffset = _Time.y * _NebulaSpeed;
-
-				float2 nebulaPosition = panoramaPosition * _NebulaScale;
-				nebulaPosition += float2(timeOffset, -timeOffset * 0.47);
-
-				float warpA = Fbm(nebulaPosition * 0.73 + float2(8.3, 1.7));
-				float warpB = Fbm(nebulaPosition * 0.91 + float2(-4.1, 6.8));
-				float2 warp = float2(warpA, warpB) - 0.5;
-
-				float nebula = Fbm(nebulaPosition + warp * 1.35);
-				float cloud = smoothstep(0.38, 0.84, nebula);
-
-				float colorMix = Fbm(nebulaPosition * 1.7 + float2(2.4, 9.1));
-				float3 nebulaColor = lerp(
-					_NebulaAColor.rgb,
-					_NebulaBColor.rgb,
-					colorMix
+				float centerGlow = SoftBlob(
+					animatedUv,
+					float2(0.52, 0.48),
+					float2(_CenterGlowSize, _CenterGlowSize * 0.72)
 				);
 
-				float3 finalColor = background;
-				finalColor += nebulaColor * cloud * _NebulaStrength * 0.55;
+				color += _CenterGlowColor.rgb * centerGlow * _CenterGlowStrength;
 
-				float starsA = StarLayer(panoramaPosition + float2(timeOffset * 0.3, 0.0), 42.0, 1.0);
-				float starsB = StarLayer(panoramaPosition * 1.65 - float2(0.0, timeOffset * 0.4), 78.0, 0.7);
+				float leftGlow = SoftBlob(
+					animatedUv,
+					float2(-0.12, 0.18),
+					float2(_LeftGlowSize * 0.62, _LeftGlowSize)
+				);
 
-				float stars = saturate(starsA + starsB * 0.75);
-				finalColor += _StarColor.rgb * stars * _StarBrightness;
+				color += _LeftGlowColor.rgb * leftGlow * _LeftGlowStrength;
 
-				float scan = sin((uv.y + _Time.y * _ScanlineSpeed) * _ScanlineScale);
-				scan = scan * 0.5 + 0.5;
-				scan = pow(scan, 22.0);
+				float rightGlow = SoftBlob(
+					animatedUv,
+					float2(1.12, 0.62),
+					float2(_RightGlowSize * 0.62, _RightGlowSize)
+				);
 
-				finalColor += _ScanlineColor.rgb * scan * _ScanlineStrength;
+				color += _RightGlowColor.rgb * rightGlow * _RightGlowStrength;
 
-				float diagonalSweep = sin(
-					(uv.x + uv.y) * 5.0 +
-					_Time.y * 0.32
-				) * 0.5 + 0.5;
+				float diagonal = dot(
+					animatedUv - 0.5,
+					normalize(float2(0.75, -0.38))
+				);
 
-				diagonalSweep = pow(diagonalSweep, 9.0);
-				finalColor += _HorizonColor.rgb * diagonalSweep * 0.035;
+				float band = 1.0 - smoothstep(
+					0.0,
+					_BandWidth,
+					abs(diagonal - _BandOffset)
+				);
+
+				color += _BandColor.rgb * band * _BandStrength;
+
+				float noise = Noise(
+					animatedUv * _NoiseScale + _Time.y * _NoiseSpeed
+				);
+
+				color += (noise - 0.5) * _NoiseStrength;
 
 				float2 centeredUv = uv - 0.5;
-				float vignette = dot(centeredUv, centeredUv) * 2.15;
-				vignette = smoothstep(0.18, 1.05, vignette);
+				float vignette = dot(centeredUv, centeredUv) * 2.0;
+				vignette = smoothstep(0.18, 1.0, vignette);
 
-				finalColor *= 1.0 - vignette * _VignetteStrength;
-				finalColor *= _Brightness;
+				color *= 1.0 - vignette * _VignetteStrength;
+				color *= _Brightness;
 
-				return float4(finalColor, _Alpha * input.color.a);
+				return float4(color, _Alpha * input.color.a);
 			}
 			ENDCG
 		}

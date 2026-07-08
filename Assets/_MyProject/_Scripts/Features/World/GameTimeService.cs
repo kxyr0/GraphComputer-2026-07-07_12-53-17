@@ -12,10 +12,18 @@ namespace Game.World.Time
 		[SerializeField, Range(0, 59)] private int startMinute = 0;
 
 		[Header("Speed")]
-		[SerializeField, Min(0.01f)] private float realSecondsPerGameMinute = 0.25f;
+		[SerializeField, Min(0f)] private float timeSpeed = 4f;
+
+		[SerializeField, HideInInspector]
+		private float realSecondsPerGameMinute = 0.25f;
+
 		[SerializeField] private bool paused;
 
-		private float accumulator;
+		[Header("Module Speed Limits")]
+		[SerializeField, Min(0f)] private float minModuleSpeed = 0f;
+		[SerializeField, Min(1f)] private float maxModuleSpeed = 86400f;
+
+		private float gameMinuteAccumulator;
 
 		public int Year { get; private set; }
 		public int Month { get; private set; }
@@ -23,36 +31,62 @@ namespace Game.World.Time
 		public int Hour { get; private set; }
 		public int Minute { get; private set; }
 
-		public bool Paused => paused;
+		public bool Paused => paused || timeSpeed <= 0f;
+		public float TimeSpeed => timeSpeed;
 		public float RealSecondsPerGameMinute => realSecondsPerGameMinute;
 
 		public event Action TimeChanged;
 
 		private void Awake()
 		{
-			Year = startYear;
-			Month = startMonth;
-			Day = startDay;
-			Hour = startHour;
-			Minute = startMinute;
+			InitializeTime();
+			InitializeSpeed();
 
 			TimeChanged?.Invoke();
 		}
 
+		private void OnValidate()
+		{
+			startMonth = Mathf.Clamp(startMonth, 1, 12);
+			startDay = Mathf.Clamp(startDay, 1, 30);
+			startHour = Mathf.Clamp(startHour, 0, 23);
+			startMinute = Mathf.Clamp(startMinute, 0, 59);
+
+			minModuleSpeed = Mathf.Max(0f, minModuleSpeed);
+			maxModuleSpeed = Mathf.Max(1f, maxModuleSpeed);
+
+			if (maxModuleSpeed < minModuleSpeed)
+			{
+				maxModuleSpeed = minModuleSpeed;
+			}
+
+			if (timeSpeed <= 0f && realSecondsPerGameMinute > 0f)
+			{
+				timeSpeed = 1f / realSecondsPerGameMinute;
+			}
+
+			timeSpeed = Mathf.Clamp(timeSpeed, minModuleSpeed, maxModuleSpeed);
+			SyncLegacySecondsFromTimeSpeed();
+		}
+
 		private void Update()
 		{
-			if (paused)
+			if (Paused)
 			{
 				return;
 			}
 
-			accumulator += UnityEngine.Time.deltaTime;
+			gameMinuteAccumulator += UnityEngine.Time.deltaTime * timeSpeed;
 
-			while (accumulator >= realSecondsPerGameMinute)
+			int minutesToAdd = Mathf.FloorToInt(gameMinuteAccumulator);
+
+			if (minutesToAdd <= 0)
 			{
-				accumulator -= realSecondsPerGameMinute;
-				AddMinute();
+				return;
 			}
+
+			gameMinuteAccumulator -= minutesToAdd;
+			AddMinutes(minutesToAdd);
 		}
 
 		public void SetPaused(bool value)
@@ -63,7 +97,38 @@ namespace Game.World.Time
 
 		public void SetSpeed(float secondsPerGameMinute)
 		{
-			realSecondsPerGameMinute = Mathf.Max(0.01f, secondsPerGameMinute);
+			if (secondsPerGameMinute <= 0f)
+			{
+				SetTimeSpeedFromModule(0f);
+				return;
+			}
+
+			float speed = 1f / secondsPerGameMinute;
+			SetTimeSpeedFromModule(speed);
+		}
+
+		public void SetTimeSpeedFromModule(float speed)
+		{
+			float clampedSpeed = Mathf.Clamp(
+				speed,
+				minModuleSpeed,
+				maxModuleSpeed
+			);
+
+			timeSpeed = clampedSpeed;
+			gameMinuteAccumulator = 0f;
+
+			SyncLegacySecondsFromTimeSpeed();
+
+			if (timeSpeed <= 0f)
+			{
+				paused = true;
+			}
+			else
+			{
+				paused = false;
+			}
+
 			TimeChanged?.Invoke();
 		}
 
@@ -79,12 +144,12 @@ namespace Game.World.Time
 
 		public string GetStatusText()
 		{
-			return paused ? "Paused" : "Running";
+			return Paused ? "Paused" : "Running";
 		}
 
 		public string GetSpeedText()
 		{
-			return $"{1f / realSecondsPerGameMinute:0.0}x";
+			return $"{timeSpeed:0.###}x";
 		}
 
 		public int GetAbsoluteDay()
@@ -97,33 +162,70 @@ namespace Game.World.Time
 			return year * 360 + (month - 1) * 30 + (day - 1);
 		}
 
-		private void AddMinute()
+		private void InitializeTime()
 		{
-			Minute++;
+			Year = startYear;
+			Month = startMonth;
+			Day = startDay;
+			Hour = startHour;
+			Minute = startMinute;
+		}
 
-			if (Minute >= 60)
+		private void InitializeSpeed()
+		{
+			if (timeSpeed <= 0f && realSecondsPerGameMinute > 0f)
 			{
-				Minute = 0;
-				Hour++;
+				timeSpeed = 1f / realSecondsPerGameMinute;
 			}
 
-			if (Hour >= 24)
+			timeSpeed = Mathf.Clamp(timeSpeed, minModuleSpeed, maxModuleSpeed);
+			SyncLegacySecondsFromTimeSpeed();
+		}
+
+		private void SyncLegacySecondsFromTimeSpeed()
+		{
+			realSecondsPerGameMinute = timeSpeed > 0f
+				? 1f / timeSpeed
+				: 0f;
+		}
+
+		private void AddMinutes(int minutesToAdd)
+		{
+			if (minutesToAdd <= 0)
 			{
-				Hour = 0;
-				Day++;
+				return;
 			}
 
-			if (Day > 30)
+			long absoluteMinutes =
+				((long)GetAbsoluteDay() * 24L * 60L) +
+				(Hour * 60L) +
+				Minute +
+				minutesToAdd;
+
+			long absoluteDays = absoluteMinutes / 1440L;
+			int minuteOfDay = (int)(absoluteMinutes % 1440L);
+
+			if (minuteOfDay < 0)
 			{
-				Day = 1;
-				Month++;
+				minuteOfDay += 1440;
+				absoluteDays--;
 			}
 
-			if (Month > 12)
+			Year = (int)(absoluteDays / 360L);
+
+			int dayOfYear = (int)(absoluteDays % 360L);
+
+			if (dayOfYear < 0)
 			{
-				Month = 1;
-				Year++;
+				dayOfYear += 360;
+				Year--;
 			}
+
+			Month = dayOfYear / 30 + 1;
+			Day = dayOfYear % 30 + 1;
+
+			Hour = minuteOfDay / 60;
+			Minute = minuteOfDay % 60;
 
 			TimeChanged?.Invoke();
 		}
