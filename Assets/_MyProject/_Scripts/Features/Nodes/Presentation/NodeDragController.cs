@@ -55,6 +55,10 @@ namespace Game.Nodes.Presentation
 
 		public void OnPointerDown(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!IsAllowedButton(eventData))
 			{
 				return;
@@ -68,6 +72,10 @@ namespace Game.Nodes.Presentation
 
 		public void OnBeginDrag(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!canDrag)
 			{
 				return;
@@ -90,6 +98,10 @@ namespace Game.Nodes.Presentation
 
 		public void OnDrag(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!canDrag)
 			{
 				return;
@@ -122,6 +134,10 @@ namespace Game.Nodes.Presentation
 
 		public void OnEndDrag(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!isDragging)
 			{
 				return;

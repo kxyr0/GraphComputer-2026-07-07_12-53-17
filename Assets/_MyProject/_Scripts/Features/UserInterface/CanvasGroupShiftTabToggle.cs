@@ -20,7 +20,8 @@ namespace Game.UI
 		[SerializeField] private Ease showEase = Ease.OutCubic;
 		[SerializeField] private Ease hideEase = Ease.InCubic;
 
-		private bool isVisible;
+		[Header("Input")]
+		[SerializeField] private bool useShiftTab = true;
 
 		private void Reset()
 		{
@@ -34,12 +35,24 @@ namespace Game.UI
 				targetGroup = GetComponent<CanvasGroup>();
 			}
 
-			isVisible = visibleOnStart;
-			ApplyInstant(isVisible);
+			ApplyInstant(visibleOnStart);
+		}
+
+		private void OnDestroy()
+		{
+			if (targetGroup != null)
+			{
+				Tween.StopAll(onTarget: targetGroup);
+			}
 		}
 
 		private void Update()
 		{
+			if (!useShiftTab)
+			{
+				return;
+			}
+
 			Keyboard keyboard = Keyboard.current;
 
 			if (keyboard == null)
@@ -61,7 +74,7 @@ namespace Game.UI
 
 		public void Toggle()
 		{
-			SetVisible(!isVisible);
+			SetVisible(!IsCurrentlyVisible());
 		}
 
 		public void Show()
@@ -74,37 +87,43 @@ namespace Game.UI
 			SetVisible(false);
 		}
 
-		private void SetVisible(bool value)
+		public void SetVisible(bool visible)
 		{
 			if (targetGroup == null)
 			{
 				return;
 			}
 
-			isVisible = value;
-
 			Tween.StopAll(onTarget: targetGroup);
 
-			float targetAlpha = value ? visibleAlpha : hiddenAlpha;
-			Ease ease = value ? showEase : hideEase;
+			float targetAlpha = visible ? visibleAlpha : hiddenAlpha;
 
-			if (value)
+			targetGroup.interactable = visible;
+			targetGroup.blocksRaycasts = visible;
+
+			if (Mathf.Approximately(targetGroup.alpha, targetAlpha))
 			{
-				targetGroup.interactable = true;
-				targetGroup.blocksRaycasts = true;
-			}
-			else
-			{
-				targetGroup.interactable = false;
-				targetGroup.blocksRaycasts = false;
+				targetGroup.alpha = targetAlpha;
+				return;
 			}
 
 			Tween.Alpha(
 				targetGroup,
 				endValue: targetAlpha,
 				duration: duration,
-				ease: ease
+				ease: visible ? showEase : hideEase
 			);
+		}
+
+		private bool IsCurrentlyVisible()
+		{
+			if (targetGroup == null)
+			{
+				return false;
+			}
+
+			float middle = (visibleAlpha + hiddenAlpha) * 0.5f;
+			return targetGroup.alpha > middle;
 		}
 
 		private void ApplyInstant(bool visible)

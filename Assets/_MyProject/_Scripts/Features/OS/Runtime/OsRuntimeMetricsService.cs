@@ -28,14 +28,19 @@ namespace Game.Nodes.Runtime
 		public OsKernelRuntimeMetrics CurrentKernel { get; private set; }
 		public OsSecurityRuntimeMetrics CurrentSecurity { get; private set; }
 		public OsControlRuntimeMetrics CurrentControl { get; private set; }
-
+		[SerializeField] private Game.IDE.Presentation.NodeCodeRegistry codeRegistry;
+		[SerializeField] private bool requireSuccessfulBuildForNodeBenefits = true;
+		[SerializeField] private bool requireSystemCoreBuild = true;
 		private void Awake()
 		{
 			if (connectionModel == null)
 			{
 				connectionModel = FindFirstObjectByType<NodeGraphConnectionModel>();
 			}
-
+			if (codeRegistry == null)
+			{
+				codeRegistry = FindFirstObjectByType<Game.IDE.Presentation.NodeCodeRegistry>();
+			}
 			Recalculate();
 		}
 
@@ -216,6 +221,19 @@ namespace Game.Nodes.Runtime
 		}
 		private OsRuntimeMetrics CalculateSystemMetrics()
 		{
+			if (requireSystemCoreBuild)
+			{
+				if (!TryGetRootNode(out NodeView rootNode) || !IsNodeOperational(rootNode))
+				{
+					return new OsRuntimeMetrics(
+						0f,
+						0f,
+						0f,
+						0f,
+						0f
+					);
+				}
+			}
 			float stability = config.BaseStability;
 			float load = config.BaseSystemLoad;
 			float memory = config.BaseMemoryUsage;
@@ -228,7 +246,10 @@ namespace Game.Nodes.Runtime
 				{
 					continue;
 				}
-
+				if (!IsNodeOperational(nodeView))
+				{
+					continue;
+				}
 				string definitionId = GetNodeDefinitionId(nodeView);
 				NodeMetricRule rule = config.GetRule(definitionId);
 
@@ -485,7 +506,19 @@ namespace Game.Nodes.Runtime
 				}
 			}
 		}
+		private bool TryGetRootNode(out NodeView rootNode)
+		{
+			rootNode = null;
 
+			string rootInstanceId = FindRootInstanceId();
+
+			if (string.IsNullOrWhiteSpace(rootInstanceId))
+			{
+				return false;
+			}
+
+			return nodesByInstanceId.TryGetValue(rootInstanceId, out rootNode);
+		}
 		private string FindRootInstanceId()
 		{
 			foreach (KeyValuePair<string, NodeView> pair in nodesByInstanceId)
@@ -585,6 +618,43 @@ namespace Game.Nodes.Runtime
 			}
 
 			return string.Empty;
+		}
+		private bool IsNodeOperational(NodeView nodeView)
+		{
+			if (!requireSuccessfulBuildForNodeBenefits)
+			{
+				return true;
+			}
+
+			if (nodeView == null)
+			{
+				return false;
+			}
+
+			if (codeRegistry == null)
+			{
+				codeRegistry = FindFirstObjectByType<Game.IDE.Presentation.NodeCodeRegistry>();
+			}
+
+			if (codeRegistry == null)
+			{
+				return false;
+			}
+
+			string instanceId = GetNodeInstanceId(nodeView);
+			string definitionId = GetNodeDefinitionId(nodeView);
+
+			if (codeRegistry.IsBuiltSuccessfully(instanceId))
+			{
+				return true;
+			}
+
+			if (codeRegistry.IsBuiltSuccessfully(definitionId))
+			{
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

@@ -661,10 +661,27 @@ end";
 				return string.Empty;
 			}
 
-			return value
-				.Replace("&", "&amp;")
-				.Replace("<", "&lt;")
-				.Replace(">", "&gt;");
+			StringBuilder builder = new StringBuilder(value.Length);
+
+			foreach (char character in value)
+			{
+				switch (character)
+				{
+					case '<':
+						builder.Append("<noparse><</noparse>");
+						break;
+
+					case '>':
+						builder.Append("<noparse>></noparse>");
+						break;
+
+					default:
+						builder.Append(character);
+						break;
+				}
+			}
+
+			return builder.ToString();
 		}
 	}
 }

@@ -38,6 +38,10 @@ namespace Game.Nodes.Presentation
 
 		public void BeginDrag(GeneratedNodePortView port, PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (eventData.button != PointerEventData.InputButton.Left)
 			{
 				return;
@@ -69,6 +73,10 @@ namespace Game.Nodes.Presentation
 
 		public void UpdateDrag(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!isDragging || previewConnection == null)
 			{
 				return;
@@ -80,6 +88,10 @@ namespace Game.Nodes.Presentation
 
 		public void EndDrag(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (!isDragging)
 			{
 				return;

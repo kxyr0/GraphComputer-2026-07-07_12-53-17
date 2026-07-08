@@ -103,6 +103,10 @@ namespace Game.Nodes.Presentation
 
 		public void OnPointerClick(PointerEventData eventData)
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				return;
+			}
 			if (eventData.button != PointerEventData.InputButton.Right)
 			{
 				return;

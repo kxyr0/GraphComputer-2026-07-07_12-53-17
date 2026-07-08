@@ -10,10 +10,8 @@ namespace Game.IDE.Presentation
 	[DisallowMultipleComponent]
 	public sealed class IdeWindowCanvasGroupController : MonoBehaviour
 	{
-		[Header("Root")]
-		[SerializeField] private RectTransform root;
-		[SerializeField] private bool collectCanvasGroupsFromChildren = true;
-		[SerializeField] private CanvasGroup[] manualGroups;
+		[Header("Groups To Control")]
+		[SerializeField] private CanvasGroup[] groups;
 
 		[Header("Buttons")]
 		[SerializeField] private Button closeButton;
@@ -23,7 +21,9 @@ namespace Game.IDE.Presentation
 		[SerializeField] private bool closeWithEscape = true;
 
 		[Header("State")]
-		[SerializeField] private bool visibleOnStart = true;
+		[SerializeField] private bool visibleOnStart;
+		[SerializeField, Range(0f, 1f)] private float visibleAlpha = 1f;
+		[SerializeField, Range(0f, 1f)] private float hiddenAlpha = 0f;
 
 		[Header("Animation")]
 		[SerializeField, Min(0.01f)] private float showDuration = 0.16f;
@@ -35,24 +35,11 @@ namespace Game.IDE.Presentation
 		[SerializeField] private UnityEvent opened;
 		[SerializeField] private UnityEvent closed;
 
-		private readonly List<CanvasGroup> groups = new();
-		private readonly Dictionary<CanvasGroup, CanvasGroupState> lastVisibleStates = new();
-
+		private readonly List<CanvasGroup> validGroups = new();
 		private bool isVisible;
-		private int tweenVersion;
-
-		private void Reset()
-		{
-			root = transform as RectTransform;
-		}
 
 		private void Awake()
 		{
-			if (root == null)
-			{
-				root = transform as RectTransform;
-			}
-
 			RebuildGroups();
 
 			if (closeButton != null)
@@ -66,17 +53,7 @@ namespace Game.IDE.Presentation
 			}
 
 			isVisible = visibleOnStart;
-
-			if (isVisible)
-			{
-				CaptureCurrentStates();
-				ApplyInstantVisible();
-			}
-			else
-			{
-				CaptureCurrentStates();
-				ApplyInstantHidden();
-			}
+			ApplyInstant(isVisible);
 		}
 
 		private void OnDestroy()
@@ -109,164 +86,75 @@ namespace Game.IDE.Presentation
 
 		public void Open()
 		{
-			SetVisible(true);
+			SetVisible(true, force: true);
 		}
 
 		public void Close()
 		{
-			SetVisible(false);
+			SetVisible(false, force: true);
 		}
 
 		public void Toggle()
 		{
-			SetVisible(!isVisible);
+			SetVisible(!isVisible, force: true);
 		}
 
-		private void SetVisible(bool value)
+		private void SetVisible(bool visible, bool force)
 		{
-			if (isVisible == value)
+			RebuildGroups();
+
+			if (!force && isVisible == visible)
 			{
 				return;
 			}
 
-			isVisible = value;
-			tweenVersion++;
+			isVisible = visible;
 
-			RebuildGroups();
+			float targetAlpha = visible ? visibleAlpha : hiddenAlpha;
+			float duration = visible ? showDuration : hideDuration;
+			Ease ease = visible ? showEase : hideEase;
 
-			if (value)
+			foreach (CanvasGroup group in validGroups)
 			{
-				AnimateOpen(tweenVersion);
+				if (group == null)
+				{
+					continue;
+				}
+
+				Tween.StopAll(onTarget: group);
+
+				group.interactable = visible;
+				group.blocksRaycasts = visible;
+
+				if (Mathf.Approximately(group.alpha, targetAlpha))
+				{
+					group.alpha = targetAlpha;
+					continue;
+				}
+
+				Tween.Alpha(
+					group,
+					endValue: targetAlpha,
+					duration: duration,
+					ease: ease
+				);
+			}
+
+			if (visible)
+			{
+				opened?.Invoke();
 			}
 			else
 			{
-				CaptureCurrentStates();
-				AnimateClose(tweenVersion);
-			}
-		}
-
-		private void AnimateOpen(int version)
-		{
-			if (groups.Count == 0)
-			{
-				opened?.Invoke();
-				return;
-			}
-
-			int pending = 0;
-
-			foreach (CanvasGroup group in groups)
-			{
-				if (group == null)
-				{
-					continue;
-				}
-
-				pending++;
-
-				Tween.StopAll(onTarget: group);
-
-				CanvasGroupState state = lastVisibleStates.TryGetValue(group, out CanvasGroupState savedState)
-					? savedState
-					: CanvasGroupState.Visible;
-
-				group.interactable = state.Interactable;
-				group.blocksRaycasts = state.BlocksRaycasts;
-
-				Tween.Alpha(
-						group,
-						endValue: state.Alpha,
-						duration: showDuration,
-						ease: showEase
-					)
-					.OnComplete(() =>
-					{
-						pending--;
-
-						if (pending <= 0 && version == tweenVersion)
-						{
-							opened?.Invoke();
-						}
-					});
-			}
-
-			if (pending == 0)
-			{
-				opened?.Invoke();
-			}
-		}
-
-		private void AnimateClose(int version)
-		{
-			if (groups.Count == 0)
-			{
-				closed?.Invoke();
-				return;
-			}
-
-			int pending = 0;
-
-			foreach (CanvasGroup group in groups)
-			{
-				if (group == null)
-				{
-					continue;
-				}
-
-				pending++;
-
-				Tween.StopAll(onTarget: group);
-
-				group.interactable = false;
-				group.blocksRaycasts = false;
-
-				Tween.Alpha(
-						group,
-						endValue: 0f,
-						duration: hideDuration,
-						ease: hideEase
-					)
-					.OnComplete(() =>
-					{
-						pending--;
-
-						if (pending <= 0 && version == tweenVersion)
-						{
-							closed?.Invoke();
-						}
-					});
-			}
-
-			if (pending == 0)
-			{
 				closed?.Invoke();
 			}
 		}
 
-		private void ApplyInstantVisible()
+		private void ApplyInstant(bool visible)
 		{
-			foreach (CanvasGroup group in groups)
-			{
-				if (group == null)
-				{
-					continue;
-				}
+			float alpha = visible ? visibleAlpha : hiddenAlpha;
 
-				CanvasGroupState state = lastVisibleStates.TryGetValue(group, out CanvasGroupState savedState)
-					? savedState
-					: CanvasGroupState.Visible;
-
-				Tween.StopAll(onTarget: group);
-
-				group.alpha = state.Alpha;
-				group.interactable = state.Interactable;
-				group.blocksRaycasts = state.BlocksRaycasts;
-			}
-		}
-
-		private void ApplyInstantHidden()
-		{
-			foreach (CanvasGroup group in groups)
+			foreach (CanvasGroup group in validGroups)
 			{
 				if (group == null)
 				{
@@ -275,69 +163,29 @@ namespace Game.IDE.Presentation
 
 				Tween.StopAll(onTarget: group);
 
-				group.alpha = 0f;
-				group.interactable = false;
-				group.blocksRaycasts = false;
-			}
-		}
-
-		private void CaptureCurrentStates()
-		{
-			lastVisibleStates.Clear();
-
-			foreach (CanvasGroup group in groups)
-			{
-				if (group == null)
-				{
-					continue;
-				}
-
-				lastVisibleStates[group] = new CanvasGroupState(
-					group.alpha,
-					group.interactable,
-					group.blocksRaycasts
-				);
+				group.alpha = alpha;
+				group.interactable = visible;
+				group.blocksRaycasts = visible;
 			}
 		}
 
 		private void RebuildGroups()
 		{
-			groups.Clear();
+			validGroups.Clear();
 
-			if (collectCanvasGroupsFromChildren && root != null)
-			{
-				root.GetComponentsInChildren(true, groups);
-			}
-
-			if (manualGroups == null)
+			if (groups == null)
 			{
 				return;
 			}
 
-			foreach (CanvasGroup group in manualGroups)
+			foreach (CanvasGroup group in groups)
 			{
-				if (group == null || groups.Contains(group))
+				if (group == null || validGroups.Contains(group))
 				{
 					continue;
 				}
 
-				groups.Add(group);
-			}
-		}
-
-		private readonly struct CanvasGroupState
-		{
-			public static readonly CanvasGroupState Visible = new(1f, true, true);
-
-			public readonly float Alpha;
-			public readonly bool Interactable;
-			public readonly bool BlocksRaycasts;
-
-			public CanvasGroupState(float alpha, bool interactable, bool blocksRaycasts)
-			{
-				Alpha = alpha;
-				Interactable = interactable;
-				BlocksRaycasts = blocksRaycasts;
+				validGroups.Add(group);
 			}
 		}
 	}

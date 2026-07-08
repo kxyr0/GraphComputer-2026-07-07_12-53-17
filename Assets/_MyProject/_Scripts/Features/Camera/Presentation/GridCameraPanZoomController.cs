@@ -61,6 +61,11 @@ namespace Features.Camera.Presentation
 
 		private void Update()
 		{
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked)
+			{
+				isDragging = false;
+				return;
+			}
 			if (targetCamera == null)
 			{
 				return;
