@@ -139,6 +139,53 @@ namespace Game.Nodes.Presentation
 			return CreateFinalConnection(from, to);
 		}
 
+		public void DeleteConnectionsForNode(NodeView nodeView)
+		{
+			string nodeId = GetNodeInstanceId(nodeView);
+
+			if (string.IsNullOrWhiteSpace(nodeId))
+			{
+				return;
+			}
+
+			if (sourcePort != null && sourcePort.Owner == nodeView)
+			{
+				DestroyPreviewConnection();
+				sourcePort = null;
+				previewConnection = null;
+				isDragging = false;
+			}
+
+			if (hoveredPort != null && hoveredPort.Owner == nodeView)
+			{
+				hoveredPort = null;
+			}
+
+			for (int i = runtimeConnections.Count - 1; i >= 0; i--)
+			{
+				RuntimeConnection connection = runtimeConnections[i];
+
+				if (connection.Data == null)
+				{
+					DestroyRuntimeConnectionView(connection);
+					runtimeConnections.RemoveAt(i);
+					continue;
+				}
+
+				if (!connection.Data.IsAttachedToNode(nodeId))
+				{
+					continue;
+				}
+
+				DeleteRuntimeConnectionAt(i);
+			}
+
+			if (connectionModel != null)
+			{
+				connectionModel.RemoveConnectionsForNode(nodeId);
+			}
+		}
+
 		private void ShowContextMenuFromLooseLine(PointerEventData eventData)
 		{
 			if (sourcePort == null)
@@ -394,20 +441,58 @@ namespace Game.Nodes.Presentation
 					continue;
 				}
 
-				connection.View.Clicked -= HandleConnectionClicked;
-
-				if (!HasAnotherConnectionToInput(connection.To, connection.Data.Id))
-				{
-					connection.To.ResetConnectionColor();
-				}
-
-				Destroy(connection.View.gameObject);
-				runtimeConnections.RemoveAt(i);
-
-				Debug.Log($"[{nameof(NodeConnectionDragController)}] Deleted connection: {data.Id}", this);
+				DeleteRuntimeConnectionAt(i);
 				return;
 			}
 		}
+
+		private void DeleteRuntimeConnectionAt(int index)
+		{
+			if (index < 0 || index >= runtimeConnections.Count)
+			{
+				return;
+			}
+
+			RuntimeConnection connection = runtimeConnections[index];
+			NodeConnectionData data = connection.Data;
+
+			if (data != null && connectionModel != null)
+			{
+				connectionModel.TryRemoveConnection(
+					data.FromNodeId,
+					data.FromPortId,
+					data.ToNodeId,
+					data.ToPortId
+				);
+			}
+
+			if (connection.To != null &&
+				data != null &&
+				!HasAnotherConnectionToInput(connection.To, data.Id))
+			{
+				connection.To.ResetConnectionColor();
+			}
+
+			DestroyRuntimeConnectionView(connection);
+			runtimeConnections.RemoveAt(index);
+
+			if (data != null)
+			{
+				Debug.Log($"[{nameof(NodeConnectionDragController)}] Deleted connection: {data.Id}", this);
+			}
+		}
+
+		private void DestroyRuntimeConnectionView(RuntimeConnection connection)
+		{
+			if (connection.View == null)
+			{
+				return;
+			}
+
+			connection.View.Clicked -= HandleConnectionClicked;
+			Destroy(connection.View.gameObject);
+		}
+
 		private bool HasAnotherConnectionToInput(
 			GeneratedNodePortView inputPort,
 			string ignoredConnectionId)

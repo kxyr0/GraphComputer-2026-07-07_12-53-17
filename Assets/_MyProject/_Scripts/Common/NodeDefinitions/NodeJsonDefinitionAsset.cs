@@ -71,11 +71,21 @@ namespace Game.Nodes.Definitions
 		public string headerColor = "#050813EE";
 		public string accentColor = "#19FFF5";
 
+		public string initialCode;
+		public string mode = "balanced";
+
 		public NodeJsonStat[] stats;
 		public NodeJsonPort[] ports;
 
 		public void Normalize()
 		{
+			initialCode ??= string.Empty;
+
+			if (string.IsNullOrWhiteSpace(mode))
+			{
+				mode = "balanced";
+			}
+
 			stats ??= Array.Empty<NodeJsonStat>();
 			ports ??= Array.Empty<NodeJsonPort>();
 

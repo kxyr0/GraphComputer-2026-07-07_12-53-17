@@ -12,6 +12,7 @@ namespace Game.IDE.Presentation
 	{
 		[Header("Groups To Control")]
 		[SerializeField] private CanvasGroup[] groups;
+		[SerializeField] private CanvasGroup[] excludedGroups;
 
 		[Header("Buttons")]
 		[SerializeField] private Button closeButton;
@@ -180,13 +181,31 @@ namespace Game.IDE.Presentation
 
 			foreach (CanvasGroup group in groups)
 			{
-				if (group == null || validGroups.Contains(group))
+				if (group == null || validGroups.Contains(group) || IsExcluded(group))
 				{
 					continue;
 				}
 
 				validGroups.Add(group);
 			}
+		}
+
+		private bool IsExcluded(CanvasGroup candidate)
+		{
+			if (excludedGroups == null)
+			{
+				return false;
+			}
+
+			foreach (CanvasGroup excludedGroup in excludedGroups)
+			{
+				if (excludedGroup == candidate)
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 	}
 }

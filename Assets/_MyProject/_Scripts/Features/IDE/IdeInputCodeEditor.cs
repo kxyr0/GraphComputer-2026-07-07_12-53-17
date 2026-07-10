@@ -24,13 +24,39 @@ namespace Game.IDE.Presentation
 		private string initialCode =
 @"module SystemCore
 
-stability += 12
-network += data.output
-security += firewall.level
+platform = PC
 
-if load > 80
-    alert ""High Load""
-end";
+require Kernel as kernel
+require Data as data
+optional Security as security
+optional Control as control
+
+budget {
+    cpu <= 72
+    memory <= 68
+    storage <= 80
+}
+
+boot {
+    start kernel.scheduler
+    mount data.fileSystem
+    scan security.firewall
+}
+
+tick every 1s {
+    monitor kernel.load
+    cache data.index
+
+    if kernel.load > 80
+        throttle data.index by 25
+        alert ""High Load""
+    end
+}
+
+export {
+    stability = 100 - kernel.load * 0.25
+    load = kernel.load
+}";
 
 		[Header("Editing")]
 		[SerializeField] private bool insertSpacesInsteadOfTabs = true;
@@ -50,14 +76,26 @@ end";
 			new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 			{
 				"module",
+				"require",
+				"optional",
+				"mode",
+				"platform",
 				"if",
 				"else",
 				"end",
+				"budget",
+				"export",
+				"boot",
+				"scheduler",
+				"tick",
 				"while",
 				"for",
 				"return",
 				"import",
 				"link",
+				"as",
+				"every",
+				"by",
 				"from",
 				"to"
 			};
@@ -66,6 +104,33 @@ end";
 			new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 			{
 				"alert",
+				"warning",
+				"start",
+				"mount",
+				"load",
+				"scan",
+				"rule",
+				"allow",
+				"block",
+				"protect",
+				"encrypt",
+				"backup",
+				"cache",
+				"index",
+				"watch",
+				"monitor",
+				"route",
+				"recover",
+				"schedule",
+				"bind",
+				"throttle",
+				"flush",
+				"reduce",
+				"speed",
+				"gameSpeed",
+				"timeSpeed",
+				"set",
+				"run",
 				"log",
 				"enable",
 				"disable",
@@ -87,11 +152,39 @@ end";
 				"memory",
 				"storage",
 				"control",
+				"SystemCore",
+				"Kernel",
+				"Data",
+				"Security",
+				"Control",
+				"Time",
+				"Firewall",
+				"PC",
+				"cpu",
+				"fileSystem",
+				"scheduler",
+				"processes",
+				"processQueue",
+				"incomingPackets",
+				"packets",
+				"trustedApps",
+				"unknownPorts",
+				"threats",
+				"inputDelay",
+				"storageUsage",
+				"systemLoad",
+				"ioLoad",
 				"system",
 				"output",
 				"input",
 				"level",
-				"core"
+				"core",
+				"strict",
+				"balanced",
+				"permissive",
+				"aggressive",
+				"safe",
+				"performance"
 			};
 
 		private void Awake()

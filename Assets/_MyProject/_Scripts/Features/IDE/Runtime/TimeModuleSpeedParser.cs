@@ -11,8 +11,13 @@ namespace Game.IDE.Runtime
 			RegexOptions.IgnoreCase | RegexOptions.Compiled
 		);
 
+		private static readonly Regex SpeedKeywordRegex = new(
+			@"^\s*(speed|time|gameSpeed|timeSpeed|set\s+speed|run\s+time)\b",
+			RegexOptions.IgnoreCase | RegexOptions.Compiled
+		);
+
 		private static readonly Regex SpeedRegex = new(
-			@"^\s*(speed|gameSpeed|timeSpeed)\s*(=|:)?\s*(?<value>[0-9]+([.,][0-9]+)?)\s*x?\s*$",
+			@"^\s*((speed|time|gameSpeed|timeSpeed)\s*(=|:|to)?|set\s+speed\s+to|run\s+time\s+at)\s*(?<value>[0-9]+([.,][0-9]+)?)\s*x?\s*$",
 			RegexOptions.IgnoreCase | RegexOptions.Compiled
 		);
 
@@ -45,6 +50,11 @@ namespace Game.IDE.Runtime
 
 		public static bool IsTimeSpeedLine(string line)
 		{
+			return TryParseSpeedLine(line, out _, out _);
+		}
+
+		public static bool IsTimeSpeedCandidateLine(string line)
+		{
 			if (string.IsNullOrWhiteSpace(line))
 			{
 				return false;
@@ -52,7 +62,58 @@ namespace Game.IDE.Runtime
 
 			line = RemoveComment(line).Trim();
 
-			return SpeedRegex.IsMatch(line);
+			return SpeedKeywordRegex.IsMatch(line);
+		}
+
+		public static bool TryParseSpeedLine(
+			string line,
+			out float speed,
+			out string error)
+		{
+			speed = 1f;
+			error = string.Empty;
+
+			line = RemoveComment(line).Trim();
+
+			if (!IsTimeSpeedCandidateLine(line))
+			{
+				error = "Line is not a Time speed statement.";
+				return false;
+			}
+
+			Match match = SpeedRegex.Match(line);
+
+			if (!match.Success)
+			{
+				error = "Expected speed syntax like 'time = 60x', 'speed = 60x', 'speed 60x', or 'set speed to 0.5x'.";
+				return false;
+			}
+
+			string valueText = match.Groups["value"].Value.Replace(',', '.');
+
+			if (!float.TryParse(
+					valueText,
+					NumberStyles.Float,
+					CultureInfo.InvariantCulture,
+					out speed))
+			{
+				error = $"Invalid time speed value: {valueText}";
+				return false;
+			}
+
+			if (float.IsNaN(speed) || float.IsInfinity(speed))
+			{
+				error = "Time speed must be a finite number.";
+				return false;
+			}
+
+			if (speed < 0f)
+			{
+				error = "Time speed cannot be negative.";
+				return false;
+			}
+
+			return true;
 		}
 
 		public static bool TryParseSpeed(
@@ -89,42 +150,26 @@ namespace Game.IDE.Runtime
 					continue;
 				}
 
-				Match match = SpeedRegex.Match(line);
-
-				if (!match.Success)
+				if (!IsTimeSpeedCandidateLine(line))
 				{
 					continue;
 				}
 
-				string valueText = match.Groups["value"].Value.Replace(',', '.');
-
-				if (!float.TryParse(
-						valueText,
-						NumberStyles.Float,
-						CultureInfo.InvariantCulture,
-						out speed))
+				if (!TryParseSpeedLine(line, out speed, out error))
 				{
-					error = $"Invalid time speed value: {valueText}";
-					return false;
-				}
-
-				if (float.IsNaN(speed) || float.IsInfinity(speed))
-				{
-					error = "Time speed must be a finite number.";
-					return false;
-				}
-
-				if (speed < 0f)
-				{
-					error = "Time speed cannot be negative.";
 					return false;
 				}
 
 				return true;
 			}
 
-			error = "Time module has no speed line. Example: speed = 60x";
+			error = "Time module has no speed line. Example: time = 60x";
 			return false;
+		}
+
+		public static string FormatSpeed(float speed)
+		{
+			return speed.ToString("0.###", CultureInfo.InvariantCulture);
 		}
 
 		private static string RemoveComment(string line)

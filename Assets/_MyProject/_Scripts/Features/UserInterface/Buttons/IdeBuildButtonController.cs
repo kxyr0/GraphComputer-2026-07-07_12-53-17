@@ -130,8 +130,6 @@ namespace Game.IDE.Presentation
 				);
 			}
 
-			bool buildSucceeded = report.Errors == null || report.Errors.Count == 0;
-
 			if (timeModuleSpeedApplier == null)
 			{
 				timeModuleSpeedApplier = FindFirstObjectByType<TimeModuleSpeedApplier>(FindObjectsInactive.Include);
@@ -142,7 +140,7 @@ namespace Game.IDE.Presentation
 				timeModuleSpeedApplier.TryApply(
 					documentId,
 					code,
-					buildSucceeded
+					report.IsSuccessful
 				);
 			}
 
@@ -170,7 +168,7 @@ namespace Game.IDE.Presentation
 				outputConsole.WriteError($"[ERROR] {error}");
 			}
 
-			if (report.Errors.Count > 0)
+			if (!report.IsSuccessful)
 			{
 				outputConsole.WriteError(
 					$"[Build] Failed with {report.Errors.Count} error(s), {report.Warnings.Count} warning(s)."
@@ -192,9 +190,20 @@ namespace Game.IDE.Presentation
 			}
 
 			outputConsole.WriteInfo("Effects:");
-			outputConsole.WriteInfo($"  Stability Delta      {FormatSigned(report.StabilityDelta)}");
-			outputConsole.WriteInfo($"  System Load Delta    {FormatSigned(report.SystemLoadDelta)}");
-			outputConsole.WriteInfo($"  Technical Debt Delta {FormatSigned(report.TechnicalDebtDelta)}");
+
+			if (report.Effects.Count > 0)
+			{
+				foreach (string effect in report.Effects)
+				{
+					outputConsole.WriteInfo($"  {effect}");
+				}
+			}
+			else
+			{
+				outputConsole.WriteInfo($"  Stability Delta      {FormatSigned(report.StabilityDelta)}");
+				outputConsole.WriteInfo($"  System Load Delta    {FormatSigned(report.SystemLoadDelta)}");
+				outputConsole.WriteInfo($"  Technical Debt Delta {FormatSigned(report.TechnicalDebtDelta)}");
+			}
 
 			outputConsole.EndWriteBatch(scrollToBottom: true);
 		}

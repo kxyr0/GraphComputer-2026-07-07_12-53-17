@@ -226,6 +226,7 @@ Example:
 boot {
     start kernel.scheduler
     mount data.fileSystem
+    scan security.firewall
 }
 
 Use boot for:
@@ -292,8 +293,10 @@ stability += 12
 network += data.output
 
 Better:
-stability = 100 - risk - load * 0.25
-network = control.networkSpeed - security.firewallCost
+export {
+    stability = 100 - risk - load * 0.25
+    network = control.networkSpeed - security.firewallCost
+}
 
 The system should calculate results from behavior, not magic numbers."
 				),
@@ -318,20 +321,22 @@ budget {
 boot {
     start kernel.scheduler
     mount data.fileSystem
+    scan security.firewall
 }
 
 tick every 1s {
-    systemLoad = kernel.load + data.ioLoad
+    monitor kernel.load
+    cache data.index
 
-    if systemLoad > 80
+    if kernel.load > 80
         throttle data.index by 25
         alert ""High Load""
     end
 }
 
 export {
-    stability = 100 - systemLoad * 0.25
-    load = systemLoad
+    stability = 100 - kernel.load * 0.25
+    load = kernel.load
 }"
 				),
 
@@ -343,37 +348,32 @@ export {
 require SystemCore as core
 
 budget {
-    cpu <= 42
-    memory <= 48
-    processes <= 64
+    cpu <= 48
+    memory <= 64
+}
+
+scheduler {
+    mode = round_robin
+    timeSlice = 12ms
 }
 
 boot {
     start scheduler
-    start processManager
-    map memory.pages
+    watch processes
 }
 
 tick every 1s {
-    processLoad = processes.active + scheduler.queue
-    memoryPressure = memory.used
+    monitor processQueue
 
-    if processLoad > 48
-        throttle scheduler.queue by 20
+    if processes > 32
+        throttle scheduler by 20
         alert ""Process Pressure""
-    end
-
-    if memoryPressure > 70
-        flush memory.cache
-        reduce processLimit by 8
-        alert ""Memory Pressure""
     end
 }
 
 export {
-    processLimit = 64
-    crashRisk = processLoad * 0.08 + memoryPressure * 0.05
-    responseTime = 16 - scheduler.efficiency
+    load = processQueue.pressure
+    response = scheduler.latency
 }"
 				),
 
@@ -385,29 +385,28 @@ export {
 require SystemCore as core
 
 budget {
-    cpu <= 28
-    memory <= 32
+    memory <= 48
     storage <= 80
 }
 
 boot {
     mount fileSystem
-    enable index
+    index directories
+    cache fileTable
 }
 
-tick every 2s {
-    ioLoad = fileSystem.reads + index.writes
+tick every 5s {
+    scan storageUsage
 
     if storageUsage > 80
-        compress oldFiles
+        flush tempFiles
         alert ""Storage Pressure""
     end
 }
 
 export {
-    readSpeed = fileSystem.speed - ioLoad * 0.1
-    dataSafety = backup.level + recovery.level
-    indexSize = index.entries
+    ioLoad = fileSystem.readLoad
+    safety = backup.health
 }"
 				),
 
@@ -427,21 +426,21 @@ budget {
 
 boot {
     load firewall
-    load permissions
+    protect userFiles
 }
 
 tick every 5s {
-    threatRisk = incomingPackets.risk
+    scan incomingPackets
 
-    if threatRisk > 20
-        scan incomingPackets
+    if threats > 0
+        block unknownPorts
         alert ""Threat Detected""
     end
 }
 
 export {
-    protectionLevel = firewall.level + permissions.level
-    firewallCost = firewall.cpuCost
+    threatLevel = firewall.risk
+    encryption = security.encryption
 }"
 				),
 
@@ -460,21 +459,21 @@ budget {
 boot {
     bind display
     bind devices
+    route input to devices
 }
 
 tick every 1s {
-    inputDelay = devices.latency + display.queue
+    monitor inputDelay
 
     if inputDelay > 25
-        throttle display.effects by 30
+        reduce inputDelay by 10
         alert ""Input Delay""
     end
 }
 
 export {
-    deviceSupport = devices.support
-    networkSpeed = devices.networkLink
-    powerControl = power.level
+    deviceSupport = devices.ready
+    latency = inputDelay
 }"
 				),
 

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5096231f0d0657e40af66b3aa96358a3, type: 3}
+  m_Name: Security
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
+  json: "{\n  \"id\": \"security\",\n  \"title\": \"Security\",\n  \"size\": {\n   
+    \"x\": 560,\n    \"y\": 600\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
+    \"#000000DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
+    \"initialCode\": \"module Security\\n\\nmode = balanced\\n\\nrequire SystemCore
+    as system\\noptional Firewall as firewall\\n\\nbudget {\\n    cpu <= 32\\n   
+    memory <= 28\\n    storage <= 18\\n}\\n\\nboot {\\n    load rules\\n    protect
+    userFiles\\n    encrypt storage\\n    watch processes\\n}\\n\\ntick every 2s
+    {\\n    scan packets\\n    monitor system.load\\n    watch processes\\n\\n   
+    if system.load > 85\\n        warning \\\"Security monitoring reduced by system
+    load\\\"\\n        throttle scheduler by 10\\n    end\\n\\n    if firewall.score
+    < 40\\n        block unknownPorts\\n        alert \\\"Firewall protection is
+    critically low\\\"\\n    end\\n}\\n\\nexport {\\n    threatLevel = security.threatLevel\\n   
+    firewall = firewall.score\\n    vulnerabilities = security.vulnerabilities\\n   
+    encryption = security.encryption\\n}\\n\",\n  \"stats\": [\n    {\n      \"label\":
+    \"Threat Level\",\n      \"value\": \"0\"\n    },\n    {\n      \"label\": \"Firewall\",\n     
+    \"value\": \"0\"\n    },\n    {\n      \"label\": \"Vulnerabilities\",\n     
+    \"value\": \"0\"\n    },\n    {\n      \"label\": \"Encryption\",\n      \"value\":
+    \"0%\"\n    }\n  ],\n  \"ports\": [\n    {\n      \"id\": \"system_core\",\n     
+    \"label\": \"System Core\",\n      \"direction\": \"Input\",\n      \"color\":
+    \"#FFAA22\"\n    },\n    {\n      \"id\": \"firewall\",\n      \"label\": \"Firewall\",\n     
+    \"direction\": \"Output\",\n      \"color\": \"#FF5C7A\"\n    },\n    {\n     
+    \"id\": \"permissions\",\n      \"label\": \"Permissions\",\n      \"direction\":
+    \"Output\",\n      \"color\": \"#B678FF\"\n    },\n    {\n      \"id\": \"antivirus\",\n     
+    \"label\": \"Antivirus\",\n      \"direction\": \"Output\",\n      \"color\":
+    \"#55FF7A\"\n    },\n    {\n      \"id\": \"encryption\",\n      \"label\": \"Encryption\",\n     
+    \"direction\": \"Output\",\n      \"color\": \"#4DA3FF\"\n    }\n  ]\n}"

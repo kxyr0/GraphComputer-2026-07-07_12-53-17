@@ -18,6 +18,23 @@ MonoBehaviour:
   baseMemoryUsage: 12
   baseStorageUsage: 4
   baseNetworkSpeedMbps: 0.25
+  networkEraBenchmarks:
+  - year: 1995
+    month: 1
+    day: 1
+    minimumMbps: 0.1
+    goodMbps: 0.25
+    excellentMbps: 0.4
+    maxStabilityPenalty: 0
+    maxLoadPenalty: 0
+  - year: 1996
+    month: 1
+    day: 1
+    minimumMbps: 0.25
+    goodMbps: 0.75
+    excellentMbps: 1.5
+    maxStabilityPenalty: 10
+    maxLoadPenalty: 14
   missingMainBranchPenalty: 8
   highLoadStabilityPenalty: 0.35
   highMemoryStabilityPenalty: 0.2
@@ -191,5 +208,11 @@ MonoBehaviour:
     stabilityBonus: 0
     loadCost: 1
     memoryCost: 1
+    storageCost: 0
+    networkSpeedMbpsBonus: 0
+  - nodeDefinitionId: user_reports
+    stabilityBonus: 0
+    loadCost: 0
+    memoryCost: 0
     storageCost: 0
     networkSpeedMbpsBonus: 0

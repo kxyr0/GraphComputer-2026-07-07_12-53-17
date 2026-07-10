@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5096231f0d0657e40af66b3aa96358a3, type: 3}
+  m_Name: User Reports
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
+  json: "{\n  \"id\": \"user_reports\",\n  \"title\": \"User Reports\",\n  \"size\":
+    {\n    \"x\": 620,\n    \"y\": 390\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
+    \"#000000DD\",\n  \"headerColor\": \"#000000DD\",\n  \"accentColor\": \"#19FFF5\",\n 
+    \"initialCode\": \"module UserReports\\n\\nrequire SystemCore as system\\n\\nboot
+    {\\n    monitor system.stability\\n    monitor system.load\\n}\\n\\ntick every
+    5s {\\n    monitor system.activeUsers\\n    monitor system.userMood\\n\\n   
+    if system.stability < 40\\n        alert \\\"Critical user reports detected\\\"\\n   
+    end\\n}\\n\\nexport {\\n    activeUsers = system.activeUsers\\n    mood = system.userMood\\n   
+    reports = system.reportCount\\n    critical = system.criticalReports\\n}\",\n 
+    \"stats\": [\n    {\n      \"label\": \"Active Users\",\n      \"value\": \"0\"\n   
+    },\n    {\n      \"label\": \"Mood\",\n      \"value\": \"0\"\n    },\n    {\n     
+    \"label\": \"Reports\",\n      \"value\": \"0\"\n    },\n    {\n      \"label\":
+    \"Critical\",\n      \"value\": \"0\"\n    }\n  ],\n  \"ports\": [\n    {\n     
+    \"id\": \"system_core\",\n      \"label\": \"System Core\",\n      \"direction\":
+    \"Input\",\n      \"color\": \"#FFAA22\",\n      \"acceptedSignalTypes\": [\n       
+    \"System\"\n      ],\n      \"allowedSourceNodeIds\": [\n        \"system_core\"\n     
+    ],\n      \"allowedSourcePortIds\": [\n        \"reports\",\n        \"user_reports\",\n       
+    \"data\",\n        \"security\",\n        \"control\",\n        \"kernel\"\n     
+    ]\n    }\n  ]\n}"

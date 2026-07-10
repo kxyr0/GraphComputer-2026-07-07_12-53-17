@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Game.IDE.Runtime;
 using UnityEngine;
 
 namespace Game.IDE.Presentation
@@ -47,7 +48,8 @@ namespace Game.IDE.Presentation
 
 			state.Code = code ?? string.Empty;
 			state.ModuleName = report.ModuleName ?? string.Empty;
-			state.LastBuildSucceeded = report.Errors.Count == 0;
+			state.ModuleSettings = report.ModuleSettings;
+			state.LastBuildSucceeded = report.IsSuccessful;
 			state.WarningCount = report.Warnings.Count;
 			state.ErrorCount = report.Errors.Count;
 
@@ -179,6 +181,7 @@ namespace Game.IDE.Presentation
 		public string DocumentId { get; }
 		public string ModuleName { get; set; }
 		public string Code { get; set; }
+		public ModuleBuildSettings ModuleSettings { get; set; }
 
 		public bool LastBuildSucceeded { get; set; }
 		public int WarningCount { get; set; }
@@ -193,6 +196,7 @@ namespace Game.IDE.Presentation
 			DocumentId = documentId;
 			Code = string.Empty;
 			ModuleName = string.Empty;
+			ModuleSettings = ModuleBuildSettings.Balanced();
 		}
 	}
 }

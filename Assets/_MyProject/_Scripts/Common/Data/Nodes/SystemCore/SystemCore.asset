@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5096231f0d0657e40af66b3aa96358a3, type: 3}
+  m_Name: SystemCore
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
+  json: "{\n  \"id\": \"system_core\",\n  \"title\": \"System Core\",\n  \"size\":
+    {\n    \"x\": 1000,\n    \"y\": 520\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
+    \"#000000DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
+    \"initialCode\": \"module SystemCore\\n\\nmode = balanced\\n\\nrequire Kernel
+    as kernel\\nrequire Data as data\\nrequire Security as security\\nrequire Control
+    as control\\n\\nbudget {\\n    cpu <= 72\\n    memory <= 68\\n    storage <=
+    80\\n}\\n\\nboot {\\n    start kernel.scheduler\\n    mount data.fileSystem\\n   
+    protect data.userFiles\\n    bind control.display\\n}\\n\\ntick every 1s {\\n   
+    monitor kernel.load\\n    monitor data.index\\n    watch processes\\n\\n    if
+    kernel.load > 80\\n        throttle scheduler by 20\\n        flush tempFiles\\n       
+    alert \\\"System load is critical\\\"\\n    end\\n}\\n\\nexport {\\n    stability
+    = 100 - kernel.load * 0.25\\n    load = kernel.load\\n    memoryUsage = kernel.memoryUsage\\n   
+    storageUsage = data.storageUsage\\n    networkSpeed = data.networkSpeed\\n}\\n\",\n 
+    \"stats\": [\n    {\n      \"label\": \"System Stability\",\n      \"value\":
+    \"0%\"\n    },\n    {\n      \"label\": \"Network Speed\",\n      \"value\":
+    \"0.00Mbps\"\n    },\n    {\n      \"label\": \"System Load\",\n      \"value\":
+    \"0%\"\n    },\n    {\n      \"label\": \"Memory Usage\",\n      \"value\": \"0%\"\n   
+    },\n    {\n      \"label\": \"Storage Usage\",\n      \"value\": \"0%\"\n   
+    }\n  ],\n  \"ports\": [\n    {\n      \"id\": \"data\",\n      \"label\": \"Data\",\n     
+    \"direction\": \"Output\",\n      \"color\": \"#4DA3FF\",\n      \"signalType\":
+    \"System\",\n      \"allowedTargetNodeIds\": [\n        \"data\"\n      ],\n     
+    \"allowedTargetPortIds\": [\n        \"system_core\"\n      ]\n    },\n    {\n     
+    \"id\": \"security\",\n      \"label\": \"Security\",\n      \"direction\": \"Output\",\n     
+    \"color\": \"#FF5C7A\",\n      \"signalType\": \"System\",\n      \"allowedTargetNodeIds\":
+    [\n        \"security\"\n      ],\n      \"allowedTargetPortIds\": [\n       
+    \"system_core\"\n      ]\n    },\n    {\n      \"id\": \"control\",\n      \"label\":
+    \"Control\",\n      \"direction\": \"Output\",\n      \"color\": \"#B678FF\",\n     
+    \"signalType\": \"System\",\n      \"allowedTargetNodeIds\": [\n        \"control\"\n     
+    ],\n      \"allowedTargetPortIds\": [\n        \"system_core\"\n      ]\n   
+    },\n    {\n      \"id\": \"kernel\",\n      \"label\": \"Kernel\",\n      \"direction\":
+    \"Output\",\n      \"color\": \"#FFD166\",\n      \"signalType\": \"System\",\n     
+    \"allowedTargetNodeIds\": [\n        \"kernel\"\n      ],\n      \"allowedTargetPortIds\":
+    [\n        \"system_core\"\n      ]\n    }\n  ]\n}"

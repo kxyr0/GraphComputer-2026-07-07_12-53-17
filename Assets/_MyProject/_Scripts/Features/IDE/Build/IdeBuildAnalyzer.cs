@@ -1,19 +1,24 @@
 using System;
 using System.Collections.Generic;
 using Game.IDE.Runtime;
+
 namespace Game.IDE.Presentation
 {
 	public sealed class IdeBuildReport
 	{
 		public string ModuleName = "UnknownModule";
+		public ModuleBuildSettings ModuleSettings = ModuleBuildSettings.Balanced();
 
 		public readonly List<string> Info = new List<string>();
 		public readonly List<string> Warnings = new List<string>();
 		public readonly List<string> Errors = new List<string>();
+		public readonly List<string> Effects = new List<string>();
 
 		public int StabilityDelta;
 		public int SystemLoadDelta;
 		public int TechnicalDebtDelta;
+
+		public bool IsSuccessful => Errors == null || Errors.Count == 0;
 	}
 
 	public static class IdeBuildAnalyzer
@@ -29,6 +34,9 @@ namespace Game.IDE.Presentation
 				? "UnknownModule"
 				: moduleName;
 
+			IdeModuleBuildProfile profile = IdeModuleRuleSet.GetProfile(moduleName);
+			report.ModuleSettings = ModuleBuildSettings.Parse(lines, report.Warnings);
+
 			if (string.IsNullOrWhiteSpace(moduleName))
 			{
 				report.Errors.Add("Missing module declaration. Example: module SystemCore");
@@ -38,9 +46,30 @@ namespace Game.IDE.Presentation
 				report.Info.Add($"Module detected: {moduleName}");
 			}
 
+			report.Info.Add(
+				report.ModuleSettings.HasExplicitMode
+					? $"Mode detected: {ModuleOperatingModeUtility.ToDisplayName(report.ModuleSettings.Mode)}"
+					: $"Mode defaulted: {ModuleOperatingModeUtility.ToDisplayName(report.ModuleSettings.Mode)}");
+
+			if (report.ModuleSettings.HasScanTraffic)
+			{
+				report.Info.Add($"scanTraffic: {FormatBool(report.ModuleSettings.ScanTraffic)}");
+			}
+
+			if (report.ModuleSettings.HasAllowUnknownPorts)
+			{
+				report.Info.Add($"allowUnknownPorts: {FormatBool(report.ModuleSettings.AllowUnknownPorts)}");
+			}
+
+			if (report.ModuleSettings.HasPlatform)
+			{
+				report.Info.Add($"platform: {report.ModuleSettings.Platform}");
+			}
+
 			AnalyzeStructure(lines, report);
-			AnalyzeArchitecture(lines, report);
-			AnalyzeUnknownStatements(lines, report);
+			AnalyzeArchitecture(lines, report, profile);
+			AnalyzeModuleSpecificSyntax(lines, report, profile);
+			AnalyzeUnknownStatements(lines, report, profile);
 			AnalyzeEffects(lines, report);
 
 			return report;
@@ -103,7 +132,10 @@ namespace Game.IDE.Presentation
 			}
 		}
 
-		private static void AnalyzeArchitecture(string[] lines, IdeBuildReport report)
+		private static void AnalyzeArchitecture(
+			string[] lines,
+			IdeBuildReport report,
+			IdeModuleBuildProfile profile)
 		{
 			bool hasRequire = ContainsKeyword(lines, "require ");
 			bool hasBudget = ContainsKeyword(lines, "budget");
@@ -111,34 +143,82 @@ namespace Game.IDE.Presentation
 			bool hasIf = ContainsKeyword(lines, "if ");
 			bool hasAlert = ContainsKeyword(lines, "alert");
 
-			if (!hasRequire)
+			if (profile.WarnMissingRequire && !hasRequire)
 			{
 				report.Warnings.Add("No explicit dependencies declared. Use 'require Kernel as kernel' or similar.");
 				report.TechnicalDebtDelta += 4;
 			}
 
-			if (!hasBudget)
+			if (profile.WarnMissingBudget && !hasBudget)
 			{
 				report.Warnings.Add("No budget block found. Hardware limits are not defined.");
 				report.TechnicalDebtDelta += 3;
 			}
 
-			if (!hasExport)
+			if (profile.WarnMissingExport && !hasExport)
 			{
 				report.Warnings.Add("No export block found. Runtime metrics are inferred automatically.");
 				report.TechnicalDebtDelta += 3;
 			}
 
-			if (!hasIf)
+			if (profile.WarnMissingConditionalLogic && !hasIf)
 			{
 				report.Warnings.Add("No conditional logic found. Module cannot react to runtime pressure.");
 				report.StabilityDelta -= 2;
 			}
 
-			if (!hasAlert)
+			if (profile.WarnMissingAlertPath && !hasAlert)
 			{
 				report.Warnings.Add("No alert path found. User-facing failures may be silent.");
 				report.TechnicalDebtDelta += 2;
+			}
+		}
+
+		private static void AnalyzeModuleSpecificSyntax(
+			string[] lines,
+			IdeBuildReport report,
+			IdeModuleBuildProfile profile)
+		{
+			if (!profile.AllowTimeSpeedStatements)
+			{
+				return;
+			}
+
+			bool speedReported = false;
+
+			for (int i = 0; i < lines.Length; i++)
+			{
+				string line = CleanLine(lines[i]);
+
+				if (string.IsNullOrWhiteSpace(line))
+				{
+					continue;
+				}
+
+				if (!TimeModuleSpeedParser.IsTimeSpeedCandidateLine(line))
+				{
+					continue;
+				}
+
+				if (!TimeModuleSpeedParser.TryParseSpeedLine(
+						line,
+						out float speed,
+						out string error))
+				{
+					report.Errors.Add($"Invalid Time speed at line {i + 1}: {error}");
+					continue;
+				}
+
+				if (speedReported)
+				{
+					continue;
+				}
+
+				string speedText = TimeModuleSpeedParser.FormatSpeed(speed);
+
+				report.Info.Add($"Time speed detected: {speedText}x");
+				report.Effects.Add($"Game Time Speed {speedText}x");
+				speedReported = true;
 			}
 		}
 
@@ -172,7 +252,30 @@ namespace Game.IDE.Presentation
 					report.TechnicalDebtDelta += 1;
 				}
 
+				if (Contains(line, "monitor") || Contains(line, "watch"))
+				{
+					report.StabilityDelta += 1;
+					report.SystemLoadDelta += 1;
+				}
+
+				if (Contains(line, "bind") || Contains(line, "mount") || Contains(line, "route"))
+				{
+					report.StabilityDelta += 1;
+				}
+
+				if (Contains(line, "index"))
+				{
+					report.SystemLoadDelta += 1;
+					report.TechnicalDebtDelta += 1;
+				}
+
 				if (Contains(line, "recovery"))
+				{
+					report.StabilityDelta += 3;
+					report.SystemLoadDelta += 1;
+				}
+
+				if (Contains(line, "recover"))
 				{
 					report.StabilityDelta += 3;
 					report.SystemLoadDelta += 1;
@@ -181,6 +284,31 @@ namespace Game.IDE.Presentation
 				if (Contains(line, "scan"))
 				{
 					report.SystemLoadDelta += 2;
+				}
+
+				if (Contains(line, "protect") || Contains(line, "encrypt"))
+				{
+					report.StabilityDelta += 2;
+					report.SystemLoadDelta += 1;
+				}
+
+				if (Contains(line, "backup"))
+				{
+					report.StabilityDelta += 2;
+					report.SystemLoadDelta += 1;
+					report.TechnicalDebtDelta += 1;
+				}
+
+				if (Contains(line, "allow") || Contains(line, "block"))
+				{
+					report.StabilityDelta += 1;
+					report.SystemLoadDelta += 1;
+				}
+
+				if (Contains(line, "flush") || Contains(line, "reduce"))
+				{
+					report.SystemLoadDelta -= 1;
+					report.TechnicalDebtDelta += 1;
 				}
 
 				if (Contains(line, "every tick"))
@@ -283,21 +411,33 @@ namespace Game.IDE.Presentation
 				.Replace('\r', '\n')
 				.Split('\n');
 		}
-		private static void AnalyzeUnknownStatements(string[] lines, IdeBuildReport report)
+
+		private static string FormatBool(bool value)
+		{
+			return value ? "true" : "false";
+		}
+
+		private static void AnalyzeUnknownStatements(
+			string[] lines,
+			IdeBuildReport report,
+			IdeModuleBuildProfile profile)
 		{
 			for (int i = 0; i < lines.Length; i++)
 			{
 				string line = CleanLine(lines[i]);
-				if (TimeModuleSpeedParser.IsTimeSpeedLine(line))
-				{
-					continue;
-				}
+
 				if (string.IsNullOrWhiteSpace(line))
 				{
 					continue;
 				}
 
-				if (IsKnownStatement(line))
+				if (profile.AllowTimeSpeedStatements &&
+					TimeModuleSpeedParser.IsTimeSpeedCandidateLine(line))
+				{
+					continue;
+				}
+
+				if (IsKnownStatement(line, profile))
 				{
 					continue;
 				}
@@ -306,7 +446,9 @@ namespace Game.IDE.Presentation
 			}
 		}
 
-		private static bool IsKnownStatement(string line)
+		private static bool IsKnownStatement(
+			string line,
+			IdeModuleBuildProfile profile)
 		{
 			string lower = line.ToLowerInvariant();
 
@@ -326,6 +468,14 @@ namespace Game.IDE.Presentation
 			}
 
 			if (lower.StartsWith("optional "))
+			{
+				return true;
+			}
+
+			if (IsKnownSettingAssignment(lower, "mode") ||
+				IsKnownSettingAssignment(lower, "scantraffic") ||
+				IsKnownSettingAssignment(lower, "allowunknownports") ||
+				IsKnownSettingAssignment(lower, "platform"))
 			{
 				return true;
 			}
@@ -360,6 +510,76 @@ namespace Game.IDE.Presentation
 				return true;
 			}
 
+			if (lower.StartsWith("scan "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("rule "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("allow "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("block "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("protect "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("encrypt "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("backup "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("cache "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("index "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("watch "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("monitor "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("route "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("recover "))
+			{
+				return true;
+			}
+
+			if (lower.StartsWith("schedule "))
+			{
+				return true;
+			}
+
 			if (lower.StartsWith("bind "))
 			{
 				return true;
@@ -385,12 +605,130 @@ namespace Game.IDE.Presentation
 				return true;
 			}
 
-			if (lower.Contains("=") || lower.Contains("<=") || lower.Contains(">="))
+			if (profile.AllowGenericAssignments &&
+				(lower.Contains("=") || lower.Contains("<=") || lower.Contains(">=")))
 			{
 				return true;
 			}
 
 			return false;
+		}
+
+		private static bool IsKnownSettingAssignment(string line, string key)
+		{
+			if (string.IsNullOrWhiteSpace(line) || string.IsNullOrWhiteSpace(key))
+			{
+				return false;
+			}
+
+			if (!line.StartsWith(key, StringComparison.OrdinalIgnoreCase))
+			{
+				return false;
+			}
+
+			if (line.Length > key.Length &&
+				(char.IsLetterOrDigit(line[key.Length]) || line[key.Length] == '_'))
+			{
+				return false;
+			}
+
+			return line.Contains("=") || line.Contains(":");
+		}
+	}
+
+	internal sealed class IdeModuleBuildProfile
+	{
+		public bool WarnMissingRequire { get; }
+		public bool WarnMissingBudget { get; }
+		public bool WarnMissingExport { get; }
+		public bool WarnMissingConditionalLogic { get; }
+		public bool WarnMissingAlertPath { get; }
+		public bool AllowGenericAssignments { get; }
+		public bool AllowTimeSpeedStatements { get; }
+
+		private IdeModuleBuildProfile(
+			bool warnMissingRequire,
+			bool warnMissingBudget,
+			bool warnMissingExport,
+			bool warnMissingConditionalLogic,
+			bool warnMissingAlertPath,
+			bool allowGenericAssignments,
+			bool allowTimeSpeedStatements)
+		{
+			WarnMissingRequire = warnMissingRequire;
+			WarnMissingBudget = warnMissingBudget;
+			WarnMissingExport = warnMissingExport;
+			WarnMissingConditionalLogic = warnMissingConditionalLogic;
+			WarnMissingAlertPath = warnMissingAlertPath;
+			AllowGenericAssignments = allowGenericAssignments;
+			AllowTimeSpeedStatements = allowTimeSpeedStatements;
+		}
+
+		public static IdeModuleBuildProfile Time()
+		{
+			return new IdeModuleBuildProfile(
+				warnMissingRequire: false,
+				warnMissingBudget: false,
+				warnMissingExport: false,
+				warnMissingConditionalLogic: false,
+				warnMissingAlertPath: false,
+				allowGenericAssignments: false,
+				allowTimeSpeedStatements: true
+			);
+		}
+
+		public static IdeModuleBuildProfile DefaultOs()
+		{
+			return new IdeModuleBuildProfile(
+				warnMissingRequire: true,
+				warnMissingBudget: true,
+				warnMissingExport: true,
+				warnMissingConditionalLogic: true,
+				warnMissingAlertPath: true,
+				allowGenericAssignments: true,
+				allowTimeSpeedStatements: false
+			);
+		}
+
+		public static IdeModuleBuildProfile PassiveUtility()
+		{
+			return new IdeModuleBuildProfile(
+				warnMissingRequire: false,
+				warnMissingBudget: false,
+				warnMissingExport: false,
+				warnMissingConditionalLogic: false,
+				warnMissingAlertPath: false,
+				allowGenericAssignments: true,
+				allowTimeSpeedStatements: false
+			);
+		}
+	}
+
+	internal static class IdeModuleRuleSet
+	{
+		private static readonly HashSet<string> OsModules = new(
+			StringComparer.OrdinalIgnoreCase)
+		{
+			"SystemCore",
+			"Kernel",
+			"Data",
+			"Security",
+			"Control"
+		};
+
+		public static IdeModuleBuildProfile GetProfile(string moduleName)
+		{
+			if (string.Equals(moduleName, "Time", StringComparison.OrdinalIgnoreCase))
+			{
+				return IdeModuleBuildProfile.Time();
+			}
+
+			if (OsModules.Contains(moduleName ?? string.Empty))
+			{
+				return IdeModuleBuildProfile.DefaultOs();
+			}
+
+			return IdeModuleBuildProfile.PassiveUtility();
 		}
 	}
 }

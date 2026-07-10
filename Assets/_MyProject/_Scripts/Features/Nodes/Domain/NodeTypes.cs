@@ -39,7 +39,8 @@ namespace Game.Nodes.Domain
 		Devices = 52,
 		Power = 53,
 		Time = 60,
-		EraNews = 61
+		EraNews = 61,
+		UserReports = 62
 	}
 
 	public enum NodePortDirection

@@ -67,18 +67,22 @@ namespace Game.Nodes.Runtime
 			switch (GetNodeId())
 			{
 				case "data":
+				case "file_system":
 					RefreshDataNode();
 					break;
 
 				case "kernel":
+				case "memory_manager":
 					RefreshKernelNode();
 					break;
 
 				case "security":
+				case "firewall":
 					RefreshSecurityNode();
 					break;
 
 				case "control":
+				case "display_manager":
 					RefreshControlNode();
 					break;
 			}
@@ -90,7 +94,9 @@ namespace Game.Nodes.Runtime
 
 			nodeView.TrySetStatValue("File System", data.FileSystemText);
 			nodeView.TrySetStatValue("Read Speed", data.ReadSpeedText);
+			nodeView.TrySetStatValue("Write Speed", data.WriteSpeedText);
 			nodeView.TrySetStatValue("Data Safety", data.DataSafetyText);
+			nodeView.TrySetStatValue("Fragmentation", data.FragmentationText);
 			nodeView.TrySetStatValue("Index Size", data.IndexSizeText);
 		}
 
@@ -102,6 +108,7 @@ namespace Game.Nodes.Runtime
 			nodeView.TrySetStatValue("Processes Limit", kernel.ProcessLimitText);
 			nodeView.TrySetStatValue("Process Limit", kernel.ProcessLimitText);
 			nodeView.TrySetStatValue("Crash Risk", kernel.CrashRiskText);
+			nodeView.TrySetStatValue("Leak Risk", kernel.LeakRiskText);
 			nodeView.TrySetStatValue("Response Time", kernel.ResponseTimeText);
 		}
 
@@ -112,6 +119,7 @@ namespace Game.Nodes.Runtime
 			nodeView.TrySetStatValue("Threat Level", security.ThreatLevelText);
 			nodeView.TrySetStatValue("Firewall", security.FirewallText);
 			nodeView.TrySetStatValue("Vulnerabilities", security.VulnerabilitiesText);
+			nodeView.TrySetStatValue("False Blocks", security.FalseBlocksText);
 			nodeView.TrySetStatValue("Encryption", security.EncryptionText);
 		}
 
@@ -120,8 +128,10 @@ namespace Game.Nodes.Runtime
 			OsControlRuntimeMetrics control = metricsService.CurrentControl;
 
 			nodeView.TrySetStatValue("Device Support", control.DeviceSupportText);
+			nodeView.TrySetStatValue("Usability", control.DeviceSupportText);
 			nodeView.TrySetStatValue("Input Delay", control.InputDelayText);
 			nodeView.TrySetStatValue("Audio Layer", control.AudioLayerText);
+			nodeView.TrySetStatValue("GPU Usage", control.GpuUsageText);
 			nodeView.TrySetStatValue("Power Control", control.PowerControlText);
 		}
 
@@ -131,9 +141,13 @@ namespace Game.Nodes.Runtime
 
 			return
 				nodeId == "data" ||
+				nodeId == "file_system" ||
 				nodeId == "kernel" ||
+				nodeId == "memory_manager" ||
 				nodeId == "security" ||
-				nodeId == "control";
+				nodeId == "firewall" ||
+				nodeId == "control" ||
+				nodeId == "display_manager";
 		}
 
 		private string GetNodeId()

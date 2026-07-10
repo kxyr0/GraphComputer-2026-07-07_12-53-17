@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5096231f0d0657e40af66b3aa96358a3, type: 3}
+  m_Name: Time
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
+  json: "{\n  \"id\": \"time\",\n  \"title\": \"Time\",\n  \"size\": {\n    \"x\":
+    520,\n    \"y\": 340\n  },\n  \"canMove\": true,\n  \"backgroundColor\": \"#000000DD\",\n 
+    \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n  \"initialCode\":
+    \"module Time\\n\\nboot {\\n    start clock\\n}\\n\\nspeed = 1x\",\n  \"stats\":
+    [\n    {\n      \"label\": \"Clock\",\n      \"value\": \"00:00\"\n    },\n   
+    {\n      \"label\": \"Date\",\n      \"value\": \"00.00.0000\"\n    },\n    {\n     
+    \"label\": \"Speed\",\n      \"value\": \"1x\"\n    },\n    {\n      \"label\":
+    \"Status\",\n      \"value\": \"Running\"\n    }\n  ],\n  \"ports\": []\n}"

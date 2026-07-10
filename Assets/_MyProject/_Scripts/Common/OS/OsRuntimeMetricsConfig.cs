@@ -26,6 +26,10 @@ namespace Game.Nodes.Runtime
 		[SerializeField, Range(0f, 100f)] private float baseStorageUsage = 4f;
 		[SerializeField, Min(0f)] private float baseNetworkSpeedMbps = 0.25f;
 
+		[Header("Network Era Obsolescence")]
+		[SerializeField] private OsNetworkEraBenchmark[] networkEraBenchmarks =
+			OsNetworkEraBenchmark.Default1995To1996();
+
 		[Header("System Penalties")]
 		[SerializeField, Range(0f, 25f)] private float missingMainBranchPenalty = 8f;
 		[SerializeField, Range(0f, 1f)] private float highLoadStabilityPenalty = 0.35f;
@@ -128,6 +132,7 @@ namespace Game.Nodes.Runtime
 		public float BaseMemoryUsage => baseMemoryUsage;
 		public float BaseStorageUsage => baseStorageUsage;
 		public float BaseNetworkSpeedMbps => baseNetworkSpeedMbps;
+		public OsNetworkEraBenchmark[] NetworkEraBenchmarks => networkEraBenchmarks;
 
 		public float MissingMainBranchPenalty => missingMainBranchPenalty;
 		public float HighLoadStabilityPenalty => highLoadStabilityPenalty;
@@ -259,7 +264,8 @@ namespace Game.Nodes.Runtime
 
 				new NodeMetricRule("time", 0f, 1f, 1f, 0f, 0f),
 				new NodeMetricRule("news", 0f, 1f, 1f, 0f, 0f),
-				new NodeMetricRule("era_news", 0f, 1f, 1f, 0f, 0f)
+				new NodeMetricRule("era_news", 0f, 1f, 1f, 0f, 0f),
+				new NodeMetricRule("user_reports", 0f, 0f, 0f, 0f, 0f)
 			};
 		}
 
@@ -288,6 +294,8 @@ namespace Game.Nodes.Runtime
 		public float MemoryUsagePercent { get; }
 		public float StorageUsagePercent { get; }
 		public float NetworkSpeedMbps { get; }
+		public float NetworkEraScorePercent { get; }
+		public string NetworkEraStatus { get; }
 
 		public string StabilityText => $"{Mathf.RoundToInt(StabilityPercent)}%";
 		public string SystemLoadText => $"{Mathf.RoundToInt(SystemLoadPercent)}%";
@@ -301,12 +309,33 @@ namespace Game.Nodes.Runtime
 			float memoryUsagePercent,
 			float storageUsagePercent,
 			float networkSpeedMbps)
+			: this(
+				stabilityPercent,
+				systemLoadPercent,
+				memoryUsagePercent,
+				storageUsagePercent,
+				networkSpeedMbps,
+				0f,
+				string.Empty)
+		{
+		}
+
+		public OsRuntimeMetrics(
+			float stabilityPercent,
+			float systemLoadPercent,
+			float memoryUsagePercent,
+			float storageUsagePercent,
+			float networkSpeedMbps,
+			float networkEraScorePercent,
+			string networkEraStatus)
 		{
 			StabilityPercent = stabilityPercent;
 			SystemLoadPercent = systemLoadPercent;
 			MemoryUsagePercent = memoryUsagePercent;
 			StorageUsagePercent = storageUsagePercent;
 			NetworkSpeedMbps = networkSpeedMbps;
+			NetworkEraScorePercent = networkEraScorePercent;
+			NetworkEraStatus = networkEraStatus ?? string.Empty;
 		}
 
 		public static OsRuntimeMetrics Lerp(OsRuntimeMetrics from, OsRuntimeMetrics to, float t)
@@ -318,7 +347,9 @@ namespace Game.Nodes.Runtime
 				Mathf.Lerp(from.SystemLoadPercent, to.SystemLoadPercent, t),
 				Mathf.Lerp(from.MemoryUsagePercent, to.MemoryUsagePercent, t),
 				Mathf.Lerp(from.StorageUsagePercent, to.StorageUsagePercent, t),
-				Mathf.Lerp(from.NetworkSpeedMbps, to.NetworkSpeedMbps, t)
+				Mathf.Lerp(from.NetworkSpeedMbps, to.NetworkSpeedMbps, t),
+				Mathf.Lerp(from.NetworkEraScorePercent, to.NetworkEraScorePercent, t),
+				to.NetworkEraStatus
 			);
 		}
 	}
@@ -328,19 +359,31 @@ namespace Game.Nodes.Runtime
 	{
 		public string FileSystemName { get; }
 		public float ReadSpeedMbPerSecond { get; }
+		public float WriteSpeedMbPerSecond { get; }
 		public float DataSafetyPercent { get; }
+		public float FragmentationPercent { get; }
 		public float IndexSizeMb { get; }
 
 		public string FileSystemText => string.IsNullOrWhiteSpace(FileSystemName) ? "None" : FileSystemName;
 		public string ReadSpeedText => $"{ReadSpeedMbPerSecond:0.0}MB/s";
+		public string WriteSpeedText => $"{WriteSpeedMbPerSecond:0.0}MB/s";
 		public string DataSafetyText => $"{Mathf.RoundToInt(DataSafetyPercent)}%";
+		public string FragmentationText => $"{Mathf.RoundToInt(FragmentationPercent)}%";
 		public string IndexSizeText => $"{Mathf.RoundToInt(IndexSizeMb)}Mb";
 
-		public OsDataRuntimeMetrics(string fileSystemName, float readSpeedMbPerSecond, float dataSafetyPercent, float indexSizeMb)
+		public OsDataRuntimeMetrics(
+			string fileSystemName,
+			float readSpeedMbPerSecond,
+			float writeSpeedMbPerSecond,
+			float dataSafetyPercent,
+			float fragmentationPercent,
+			float indexSizeMb)
 		{
 			FileSystemName = fileSystemName;
 			ReadSpeedMbPerSecond = readSpeedMbPerSecond;
+			WriteSpeedMbPerSecond = writeSpeedMbPerSecond;
 			DataSafetyPercent = dataSafetyPercent;
+			FragmentationPercent = fragmentationPercent;
 			IndexSizeMb = indexSizeMb;
 		}
 
@@ -351,7 +394,9 @@ namespace Game.Nodes.Runtime
 			return new OsDataRuntimeMetrics(
 				to.FileSystemName,
 				Mathf.Lerp(from.ReadSpeedMbPerSecond, to.ReadSpeedMbPerSecond, t),
+				Mathf.Lerp(from.WriteSpeedMbPerSecond, to.WriteSpeedMbPerSecond, t),
 				Mathf.Lerp(from.DataSafetyPercent, to.DataSafetyPercent, t),
+				Mathf.Lerp(from.FragmentationPercent, to.FragmentationPercent, t),
 				Mathf.Lerp(from.IndexSizeMb, to.IndexSizeMb, t)
 			);
 		}
@@ -363,18 +408,26 @@ namespace Game.Nodes.Runtime
 		public string KernelType { get; }
 		public int ProcessLimit { get; }
 		public float CrashRiskPercent { get; }
+		public float LeakRiskPercent { get; }
 		public float ResponseTimeMs { get; }
 
 		public string KernelTypeText => string.IsNullOrWhiteSpace(KernelType) ? "Unknown" : KernelType;
 		public string ProcessLimitText => ProcessLimit.ToString();
 		public string CrashRiskText => $"{Mathf.RoundToInt(CrashRiskPercent)}%";
+		public string LeakRiskText => $"{Mathf.RoundToInt(LeakRiskPercent)}%";
 		public string ResponseTimeText => $"{Mathf.RoundToInt(ResponseTimeMs)}ms";
 
-		public OsKernelRuntimeMetrics(string kernelType, int processLimit, float crashRiskPercent, float responseTimeMs)
+		public OsKernelRuntimeMetrics(
+			string kernelType,
+			int processLimit,
+			float crashRiskPercent,
+			float leakRiskPercent,
+			float responseTimeMs)
 		{
 			KernelType = kernelType;
 			ProcessLimit = processLimit;
 			CrashRiskPercent = crashRiskPercent;
+			LeakRiskPercent = leakRiskPercent;
 			ResponseTimeMs = responseTimeMs;
 		}
 
@@ -386,6 +439,7 @@ namespace Game.Nodes.Runtime
 				to.KernelType,
 				Mathf.RoundToInt(Mathf.Lerp(from.ProcessLimit, to.ProcessLimit, t)),
 				Mathf.Lerp(from.CrashRiskPercent, to.CrashRiskPercent, t),
+				Mathf.Lerp(from.LeakRiskPercent, to.LeakRiskPercent, t),
 				Mathf.Lerp(from.ResponseTimeMs, to.ResponseTimeMs, t)
 			);
 		}
@@ -397,18 +451,26 @@ namespace Game.Nodes.Runtime
 		public string ThreatLevel { get; }
 		public string FirewallMode { get; }
 		public int Vulnerabilities { get; }
+		public float FalseBlocksPercent { get; }
 		public float EncryptionPercent { get; }
 
 		public string ThreatLevelText => string.IsNullOrWhiteSpace(ThreatLevel) ? "Unknown" : ThreatLevel;
 		public string FirewallText => string.IsNullOrWhiteSpace(FirewallMode) ? "None" : FirewallMode;
 		public string VulnerabilitiesText => Vulnerabilities.ToString();
+		public string FalseBlocksText => $"{Mathf.RoundToInt(FalseBlocksPercent)}%";
 		public string EncryptionText => $"{Mathf.RoundToInt(EncryptionPercent)}%";
 
-		public OsSecurityRuntimeMetrics(string threatLevel, string firewallMode, int vulnerabilities, float encryptionPercent)
+		public OsSecurityRuntimeMetrics(
+			string threatLevel,
+			string firewallMode,
+			int vulnerabilities,
+			float falseBlocksPercent,
+			float encryptionPercent)
 		{
 			ThreatLevel = threatLevel;
 			FirewallMode = firewallMode;
 			Vulnerabilities = vulnerabilities;
+			FalseBlocksPercent = falseBlocksPercent;
 			EncryptionPercent = encryptionPercent;
 		}
 
@@ -420,6 +482,7 @@ namespace Game.Nodes.Runtime
 				to.ThreatLevel,
 				to.FirewallMode,
 				Mathf.RoundToInt(Mathf.Lerp(from.Vulnerabilities, to.Vulnerabilities, t)),
+				Mathf.Lerp(from.FalseBlocksPercent, to.FalseBlocksPercent, t),
 				Mathf.Lerp(from.EncryptionPercent, to.EncryptionPercent, t)
 			);
 		}
@@ -431,18 +494,26 @@ namespace Game.Nodes.Runtime
 		public float DeviceSupportPercent { get; }
 		public float InputDelayMs { get; }
 		public string AudioLayer { get; }
+		public float GpuUsagePercent { get; }
 		public float PowerControlPercent { get; }
 
 		public string DeviceSupportText => $"{Mathf.RoundToInt(DeviceSupportPercent)}%";
 		public string InputDelayText => $"{Mathf.RoundToInt(InputDelayMs)}ms";
 		public string AudioLayerText => string.IsNullOrWhiteSpace(AudioLayer) ? "None" : AudioLayer;
+		public string GpuUsageText => $"{Mathf.RoundToInt(GpuUsagePercent)}%";
 		public string PowerControlText => $"{Mathf.RoundToInt(PowerControlPercent)}%";
 
-		public OsControlRuntimeMetrics(float deviceSupportPercent, float inputDelayMs, string audioLayer, float powerControlPercent)
+		public OsControlRuntimeMetrics(
+			float deviceSupportPercent,
+			float inputDelayMs,
+			string audioLayer,
+			float gpuUsagePercent,
+			float powerControlPercent)
 		{
 			DeviceSupportPercent = deviceSupportPercent;
 			InputDelayMs = inputDelayMs;
 			AudioLayer = audioLayer;
+			GpuUsagePercent = gpuUsagePercent;
 			PowerControlPercent = powerControlPercent;
 		}
 
@@ -454,6 +525,7 @@ namespace Game.Nodes.Runtime
 				Mathf.Lerp(from.DeviceSupportPercent, to.DeviceSupportPercent, t),
 				Mathf.Lerp(from.InputDelayMs, to.InputDelayMs, t),
 				to.AudioLayer,
+				Mathf.Lerp(from.GpuUsagePercent, to.GpuUsagePercent, t),
 				Mathf.Lerp(from.PowerControlPercent, to.PowerControlPercent, t)
 			);
 		}

@@ -59,10 +59,7 @@ namespace Game.IDE.Presentation
 				}
 			}
 
-			if (entries == null || entries.Length == 0)
-			{
-				FillDefaultEntries();
-			}
+			EnsureDefaultEntries();
 
 			HideInstant();
 		}
@@ -526,18 +523,110 @@ namespace Game.IDE.Presentation
 		[ContextMenu("Fill Default Entries")]
 		private void FillDefaultEntries()
 		{
-			entries = new[]
+			entries = BuildDefaultEntries();
+		}
+
+		private void EnsureDefaultEntries()
+		{
+			IdeAutocompleteEntry[] defaultEntries = BuildDefaultEntries();
+
+			if (entries == null || entries.Length == 0)
+			{
+				entries = defaultEntries;
+				return;
+			}
+
+			List<IdeAutocompleteEntry> mergedEntries = new List<IdeAutocompleteEntry>(entries.Length + defaultEntries.Length);
+			HashSet<string> knownInsertTexts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			foreach (IdeAutocompleteEntry entry in entries)
+			{
+				if (entry == null || string.IsNullOrWhiteSpace(entry.InsertText))
+				{
+					continue;
+				}
+
+				if (knownInsertTexts.Add(entry.InsertText))
+				{
+					mergedEntries.Add(entry);
+				}
+			}
+
+			foreach (IdeAutocompleteEntry defaultEntry in defaultEntries)
+			{
+				if (defaultEntry == null || string.IsNullOrWhiteSpace(defaultEntry.InsertText))
+				{
+					continue;
+				}
+
+				if (knownInsertTexts.Add(defaultEntry.InsertText))
+				{
+					mergedEntries.Add(defaultEntry);
+				}
+			}
+
+			entries = mergedEntries.ToArray();
+		}
+
+		private static IdeAutocompleteEntry[] BuildDefaultEntries()
+		{
+			return new[]
 			{
 				new IdeAutocompleteEntry("module", "module", "keyword"),
+				new IdeAutocompleteEntry("require", "require", "keyword"),
+				new IdeAutocompleteEntry("optional", "optional", "keyword"),
 				new IdeAutocompleteEntry("if", "if", "keyword"),
 				new IdeAutocompleteEntry("else", "else", "keyword"),
 				new IdeAutocompleteEntry("end", "end", "keyword"),
+				new IdeAutocompleteEntry("budget", "budget", "block"),
+				new IdeAutocompleteEntry("export", "export", "block"),
+				new IdeAutocompleteEntry("boot", "boot", "block"),
+				new IdeAutocompleteEntry("scheduler", "scheduler", "block"),
+				new IdeAutocompleteEntry("tick", "tick", "block"),
+				new IdeAutocompleteEntry("mode", "mode", "setting"),
+				new IdeAutocompleteEntry("platform", "platform", "setting"),
+				new IdeAutocompleteEntry("PC", "PC", "platform"),
+				new IdeAutocompleteEntry("strict", "strict", "mode"),
+				new IdeAutocompleteEntry("balanced", "balanced", "mode"),
+				new IdeAutocompleteEntry("permissive", "permissive", "mode"),
+				new IdeAutocompleteEntry("aggressive", "aggressive", "mode"),
+				new IdeAutocompleteEntry("safe", "safe", "mode"),
+				new IdeAutocompleteEntry("performance", "performance", "mode"),
+				new IdeAutocompleteEntry("scanTraffic", "scanTraffic", "setting"),
+				new IdeAutocompleteEntry("allowUnknownPorts", "allowUnknownPorts", "setting"),
+				new IdeAutocompleteEntry("true", "true", "literal"),
+				new IdeAutocompleteEntry("false", "false", "literal"),
 				new IdeAutocompleteEntry("import", "import", "keyword"),
 				new IdeAutocompleteEntry("link", "link", "keyword"),
 
 				new IdeAutocompleteEntry("alert", "alert", "function"),
-				new IdeAutocompleteEntry("log", "log", "function"),
+				new IdeAutocompleteEntry("warning", "warning", "function"),
+				new IdeAutocompleteEntry("start", "start", "function"),
+				new IdeAutocompleteEntry("mount", "mount", "function"),
+				new IdeAutocompleteEntry("load", "load", "function"),
+				new IdeAutocompleteEntry("scan", "scan", "function"),
+				new IdeAutocompleteEntry("rule", "rule", "function"),
+				new IdeAutocompleteEntry("allow", "allow", "function"),
+				new IdeAutocompleteEntry("block", "block", "function"),
+				new IdeAutocompleteEntry("protect", "protect", "function"),
+				new IdeAutocompleteEntry("encrypt", "encrypt", "function"),
+				new IdeAutocompleteEntry("backup", "backup", "function"),
+				new IdeAutocompleteEntry("cache", "cache", "function"),
+				new IdeAutocompleteEntry("index", "index", "function"),
+				new IdeAutocompleteEntry("watch", "watch", "function"),
+				new IdeAutocompleteEntry("monitor", "monitor", "function"),
+				new IdeAutocompleteEntry("route", "route", "function"),
+				new IdeAutocompleteEntry("recover", "recover", "function"),
+				new IdeAutocompleteEntry("schedule", "schedule", "function"),
+				new IdeAutocompleteEntry("bind", "bind", "function"),
+				new IdeAutocompleteEntry("throttle", "throttle", "function"),
+				new IdeAutocompleteEntry("flush", "flush", "function"),
+				new IdeAutocompleteEntry("reduce", "reduce", "function"),
 				new IdeAutocompleteEntry("enable", "enable", "function"),
+				new IdeAutocompleteEntry("speed", "speed", "function"),
+				new IdeAutocompleteEntry("gameSpeed", "gameSpeed", "function"),
+				new IdeAutocompleteEntry("timeSpeed", "timeSpeed", "function"),
+				new IdeAutocompleteEntry("log", "log", "function"),
 				new IdeAutocompleteEntry("disable", "disable", "function"),
 				new IdeAutocompleteEntry("connect", "connect", "function"),
 
@@ -546,6 +635,11 @@ namespace Game.IDE.Presentation
 				new IdeAutocompleteEntry("Data", "Data", "module"),
 				new IdeAutocompleteEntry("Security", "Security", "module"),
 				new IdeAutocompleteEntry("Control", "Control", "module"),
+				new IdeAutocompleteEntry("Time", "Time", "module"),
+				new IdeAutocompleteEntry("Firewall", "Firewall", "module"),
+				new IdeAutocompleteEntry("FileSystem", "FileSystem", "module"),
+				new IdeAutocompleteEntry("MemoryManager", "MemoryManager", "module"),
+				new IdeAutocompleteEntry("DisplayManager", "DisplayManager", "module"),
 
 				new IdeAutocompleteEntry("stability", "stability", "metric"),
 				new IdeAutocompleteEntry("network", "network", "metric"),
@@ -553,10 +647,20 @@ namespace Game.IDE.Presentation
 				new IdeAutocompleteEntry("load", "load", "metric"),
 				new IdeAutocompleteEntry("memory", "memory", "metric"),
 				new IdeAutocompleteEntry("storage", "storage", "metric"),
+				new IdeAutocompleteEntry("falseBlocks", "falseBlocks", "metric"),
+				new IdeAutocompleteEntry("fragmentation", "fragmentation", "metric"),
+				new IdeAutocompleteEntry("leakRisk", "leakRisk", "metric"),
+				new IdeAutocompleteEntry("gpuUsage", "gpuUsage", "metric"),
+				new IdeAutocompleteEntry("userMood", "userMood", "metric"),
 
 				new IdeAutocompleteEntry("data", "data", "node"),
 				new IdeAutocompleteEntry("firewall", "firewall", "node"),
+				new IdeAutocompleteEntry("file_system", "file_system", "node"),
+				new IdeAutocompleteEntry("memory_manager", "memory_manager", "node"),
+				new IdeAutocompleteEntry("display_manager", "display_manager", "node"),
 				new IdeAutocompleteEntry("kernel", "kernel", "node"),
+				new IdeAutocompleteEntry("core", "core", "node"),
+				new IdeAutocompleteEntry("time", "time", "node"),
 				new IdeAutocompleteEntry("output", "output", "port"),
 				new IdeAutocompleteEntry("level", "level", "property")
 			};

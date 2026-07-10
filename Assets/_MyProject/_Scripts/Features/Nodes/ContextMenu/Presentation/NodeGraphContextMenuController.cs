@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using Game.Nodes.Composition;
 using Game.Nodes.Definitions;
+using Game.Selection.Categories.Runtime;
+using Game.Selection.Runtime;
+using Game.UI.Input;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -13,9 +16,12 @@ namespace Game.Nodes.Presentation
 	public sealed class NodeGraphContextMenuController : MonoBehaviour, IPointerClickHandler
 	{
 		private const string BackCategoryId = "__back";
+		private const string CreateSelectionCategoryId = "__create_selection_category";
 
 		[SerializeField] private NodeCatalog nodeCatalog;
 		[SerializeField] private NodeFactory nodeFactory;
+		[SerializeField] private NodeSelectionService selectionService;
+		[SerializeField] private NodeCategoryFrameService categoryFrameService;
 
 		[Header("Graph")]
 		[SerializeField] private RectTransform nodesRoot;
@@ -31,6 +37,9 @@ namespace Game.Nodes.Presentation
 		[SerializeField] private bool useCategories = true;
 		[SerializeField] private bool autoOpenSingleCategory = true;
 		[SerializeField] private bool showBackButton = true;
+		[SerializeField] private bool showSelectionCategoryAction = true;
+		[SerializeField] private bool openSelectionMenuFromAnyRightClick = true;
+		[SerializeField, Min(2)] private int minSelectedNodesForCategory = 2;
 
 		[Header("Animation")]
 		[SerializeField] private NodePopupScaleAnimator popupAnimator;
@@ -47,10 +56,12 @@ namespace Game.Nodes.Presentation
 
 		private GeneratedNodePortView pendingConnectionSourcePort;
 		private NodeConnectionDragController pendingConnectionController;
+		private int lastShowFrame = -1;
 
 		private void Awake()
 		{
 			canvas = GetComponentInParent<Canvas>();
+			ResolveSelectionServices();
 
 			if (menuPanel != null)
 			{
@@ -73,8 +84,14 @@ namespace Game.Nodes.Presentation
 
 		private void Update()
 		{
-			if (menuPanel == null || !isMenuOpen)
+			if (menuPanel == null)
 			{
+				return;
+			}
+
+			if (!isMenuOpen)
+			{
+				TryOpenSelectionMenuFromRightClick();
 				return;
 			}
 
@@ -124,6 +141,11 @@ namespace Game.Nodes.Presentation
 				return;
 			}
 
+			if (lastShowFrame == Time.frameCount)
+			{
+				return;
+			}
+
 			ClearPendingConnection();
 
 			Camera eventCamera = GetEventCamera(eventData);
@@ -162,6 +184,7 @@ namespace Game.Nodes.Presentation
 			}
 
 			lastEventCamera = eventCamera;
+			lastShowFrame = Time.frameCount;
 			activeCategoryId = string.Empty;
 
 			RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -295,6 +318,17 @@ namespace Game.Nodes.Presentation
 
 		private void BuildCategoryRoot(List<NodeSpawnCategoryGroup> groups)
 		{
+			if (CanShowSelectionCategoryAction())
+			{
+				CreateCategoryItem(
+					CreateSelectionCategoryId,
+					"Create Category",
+					GetSelectedCount(),
+					false,
+					HandleCategoryClicked
+				);
+			}
+
 			foreach (NodeSpawnCategoryGroup group in groups)
 			{
 				CreateCategoryItem(
@@ -391,6 +425,12 @@ namespace Game.Nodes.Presentation
 				return;
 			}
 
+			if (categoryId == CreateSelectionCategoryId)
+			{
+				CreateCategoryFromSelection();
+				return;
+			}
+
 			if (categoryId == BackCategoryId)
 			{
 				activeCategoryId = string.Empty;
@@ -406,6 +446,30 @@ namespace Game.Nodes.Presentation
 			ClampMenuToParent();
 		}
 
+		private void CreateCategoryFromSelection()
+		{
+			ResolveSelectionServices();
+
+			if (categoryFrameService == null)
+			{
+				Debug.LogWarning(
+					$"[{nameof(NodeGraphContextMenuController)}] Category frame service is missing.",
+					this);
+
+				return;
+			}
+
+			if (!categoryFrameService.TryCreateFromCurrentSelection())
+			{
+				return;
+			}
+
+			if (hideAfterSpawn)
+			{
+				Hide();
+			}
+		}
+
 		private bool CanShowNodeInCurrentMenu(NodeDefinition definition)
 		{
 			if (pendingConnectionSourcePort == null)
@@ -417,6 +481,59 @@ namespace Game.Nodes.Presentation
 				pendingConnectionSourcePort,
 				definition
 			);
+		}
+
+		private bool CanShowSelectionCategoryAction()
+		{
+			if (!showSelectionCategoryAction || pendingConnectionSourcePort != null)
+			{
+				return false;
+			}
+
+			ResolveSelectionServices();
+
+			if (selectionService == null || selectionService.SelectedCount < minSelectedNodesForCategory)
+			{
+				return false;
+			}
+
+			if (categoryPrefab == null)
+			{
+				return false;
+			}
+
+			return categoryFrameService != null &&
+				   categoryFrameService.CanCreateFromCurrentSelection;
+		}
+
+		private int GetSelectedCount()
+		{
+			ResolveSelectionServices();
+			return selectionService != null ? selectionService.SelectedCount : 0;
+		}
+
+		private void TryOpenSelectionMenuFromRightClick()
+		{
+			if (!openSelectionMenuFromAnyRightClick ||
+				Mouse.current == null ||
+				!Mouse.current.rightButton.wasPressedThisFrame)
+			{
+				return;
+			}
+
+			if (Game.Runtime.Input.GameInputBlocker.IsBlocked ||
+				UiPointerBlockUtility.IsPointerOverBlockingUi())
+			{
+				return;
+			}
+
+			if (!CanShowSelectionCategoryAction())
+			{
+				return;
+			}
+
+			Vector2 screenPosition = Mouse.current.position.ReadValue();
+			Show(screenPosition, GetCanvasEventCamera());
 		}
 
 		private void PrepareGeneratedItem(GameObject item)
@@ -523,7 +640,7 @@ namespace Game.Nodes.Presentation
 				"display_manager" or "sound" or "devices" or "power"
 					=> new NodeSpawnCategory("control", "Control", 40),
 
-				"time" or "news" or "era_news" or "docs"
+				"time" or "news" or "era_news" or "docs" or "user_reports"
 					=> new NodeSpawnCategory("world", "World", 50),
 
 				_ => new NodeSpawnCategory("other", "Other", 999)
@@ -700,6 +817,29 @@ namespace Game.Nodes.Presentation
 			}
 
 			return null;
+		}
+
+		private Camera GetCanvasEventCamera()
+		{
+			if (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+			{
+				return canvas.worldCamera;
+			}
+
+			return null;
+		}
+
+		private void ResolveSelectionServices()
+		{
+			if (selectionService == null)
+			{
+				selectionService = FindFirstObjectByType<NodeSelectionService>();
+			}
+
+			if (categoryFrameService == null)
+			{
+				categoryFrameService = FindFirstObjectByType<NodeCategoryFrameService>();
+			}
 		}
 
 		private readonly struct NodeSpawnCategory

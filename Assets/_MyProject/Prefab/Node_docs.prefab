@@ -1623,6 +1623,8 @@ GameObject:
   - component: {fileID: 5905824398752828614}
   - component: {fileID: 8850798590872364910}
   - component: {fileID: 4598279354586381557}
+  - component: {fileID: 7418320155630621092}
+  - component: {fileID: 2325153383394082330}
   m_Layer: 0
   m_Name: Node_docs
   m_TagString: Untagged
@@ -1796,58 +1798,58 @@ MonoBehaviour:
     pageTitle: Build result
     description: 'Build checks your module code.
 
-      
+
 
       If Build succeeds:
 
       The
       module becomes operational.
 
-      
+
 
       If Build fails:
 
-      The module
-      stays installed, but it gives no real benefit.
+      The module stays
+      installed, but it gives no real benefit.
 
-      
+
 
       Warnings mean:
 
       The
       code works, but may create problems later.
 
-      
+
 
       Errors mean:
 
       The
       code cannot be used.
 
-      
+
 
       Common causes:
 
-      - missing module
-      declaration
+      - missing module declaration
 
-      - unknown command
+      -
+      unknown command
 
       - missing end
 
-      - missing
-      }
+      - missing }
 
       - invalid structure
 
-      - required module is not built'
+      -
+      required module is not built'
   - buttonTitle: Why module is offline
     pageTitle: Why module is offline
     description: 'Description:
 
       If a module is Offline, check this:
 
-      
+
 
       1.
       Is the node connected?
@@ -1867,21 +1869,83 @@ MonoBehaviour:
       7.
       Is there an unknown statement error?
 
-      
 
-      Connected node without
-      successful Build is only installed.
+
+      Connected node without successful
+      Build is only installed.
 
       It is not operational.
 
-      
 
-      Node
-      = capability.
 
-      Code = behavior.
+      Node = capability.
+
+      Code
+      = behavior.
 
       Build = activation.'
+--- !u!114 &7418320155630621092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7075243568789207232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc31ab6f331d045489d1bec2f2e14202, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Presentation.NodeView
+  jsonDefinition: {fileID: 0}
+  bindJsonOnEnable: 0
+  previewJsonInEditor: 1
+  editorPreviewHash: 0
+  rectTransform: {fileID: 8728640533739673278}
+  backgroundImage: {fileID: 0}
+  headerImage: {fileID: 0}
+  accentImage: {fileID: 0}
+  titleText: {fileID: 0}
+  statsRoot: {fileID: 0}
+  statRowPrefab: {fileID: 0}
+  inputPortsRoot: {fileID: 0}
+  outputPortsRoot: {fileID: 0}
+  inputPortPrefab: {fileID: 0}
+  outputPortPrefab: {fileID: 0}
+  portViews: []
+  generatedContentLayoutMode: 0
+  autoNodeSizeMode: 0
+  manualApplyJsonSize: 0
+  manualApplyHeaderLayout: 0
+  manualForceLayoutRebuild: 0
+  minimumNodeSize: {x: 520, y: 260}
+  headerHeight: 36
+  safeTopPadding: 10
+  safeBottomPadding: 16
+  safeSidePadding: 32
+  columnGap: 28
+  statsToPortsGap: 18
+  generatedRowHeight: 24
+  generatedRowSpacing: 2
+  dragController: {fileID: 0}
+--- !u!114 &2325153383394082330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7075243568789207232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cc70686f81c42059f63c2606dc53558, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Selection.Runtime.SelectableNode
+  nodeView: {fileID: 7418320155630621092}
+  rectTransform: {fileID: 8728640533739673278}
+  selectable: 1
+  clearSelectionOnDisable: 1
+  selectedChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7093324913739619283
 GameObject:
   m_ObjectHideFlags: 0

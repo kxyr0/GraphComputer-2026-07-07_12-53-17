@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.IDE.Runtime;
 using UnityEngine;
 
 namespace Game.IDE.Presentation
@@ -77,7 +78,11 @@ namespace Game.IDE.Presentation
 
 		public void OpenDocumentWithDefaultCode(string documentId, string title)
 		{
-			OpenDocument(documentId, title, GetDefaultCode(documentId));
+			OpenDocument(
+				documentId,
+				title,
+				IdeCodeTemplateProvider.GetDefaultCode(documentId, title)
+			);
 		}
 
 		public void SelectDocument(string documentId)
@@ -185,7 +190,7 @@ namespace Game.IDE.Presentation
 				CodeDocumentState systemCore = new(
 					"system_core",
 					"System Core",
-					GetDefaultCode("system_core")
+					IdeCodeTemplateProvider.GetDefaultCode("system_core", "System Core")
 				);
 
 				documents.Add(systemCore);
@@ -201,7 +206,9 @@ namespace Game.IDE.Presentation
 				}
 
 				string code = string.IsNullOrWhiteSpace(initialDocument.Code)
-					? GetDefaultCode(initialDocument.Id)
+					? IdeCodeTemplateProvider.GetDefaultCode(
+						initialDocument.Id,
+						initialDocument.Title)
 					: initialDocument.Code;
 
 				CodeDocumentState document = new(
@@ -319,106 +326,6 @@ namespace Game.IDE.Presentation
 
 			codeEditor.SetTitle("No File");
 			codeEditor.SetCode(string.Empty);
-		}
-
-		private static string GetDefaultCode(string documentId)
-		{
-			switch ((documentId ?? string.Empty).ToLowerInvariant())
-			{
-				case "system_core":
-					return
-@"module SystemCore
-
-stability += 12
-network += data.output
-security += firewall.level
-
-if load > 80
-    alert ""High Load""
-end";
-
-				case "kernel":
-					return
-@"module Kernel
-
-require SystemCore as core
-
-scheduler {
-    mode = round_robin
-    timeSlice = 12ms
-}
-
-if processes > 32
-    alert ""Process Pressure""
-end";
-
-				case "data":
-					return
-@"module Data
-
-require SystemCore as core
-
-mount fileSystem
-enable index
-
-if storageUsage > 80
-    alert ""Storage Pressure""
-end";
-
-				case "security":
-					return
-@"module Security
-
-require SystemCore as core
-
-load firewall
-scan incomingPackets every 5s
-
-if threats > 0
-    alert ""Threat Detected""
-end";
-
-				case "control":
-					return
-@"module Control
-
-require SystemCore as core
-
-bind display
-bind devices
-
-if inputDelay > 25
-    alert ""Input Delay""
-end";
-
-				default:
-					return $"module {ToModuleName(documentId)}\n\n// Write module logic here";
-			}
-		}
-
-		private static string ToModuleName(string documentId)
-		{
-			if (string.IsNullOrWhiteSpace(documentId))
-			{
-				return "NewModule";
-			}
-
-			string[] parts = documentId.Split('_');
-			string result = string.Empty;
-
-			foreach (string part in parts)
-			{
-				if (string.IsNullOrWhiteSpace(part))
-				{
-					continue;
-				}
-
-				result += char.ToUpperInvariant(part[0]) + part[1..];
-			}
-
-			return string.IsNullOrWhiteSpace(result)
-				? "NewModule"
-				: result;
 		}
 
 		[Serializable]
