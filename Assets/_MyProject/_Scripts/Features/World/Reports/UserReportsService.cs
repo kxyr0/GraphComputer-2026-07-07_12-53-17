@@ -108,6 +108,16 @@ namespace Game.World.Reports
 			"Trusted services should not be interrupted this often."
 		};
 
+		private static readonly string[] OutdatedModuleReports =
+		{
+			"This OS is missing modules that modern users expect.",
+			"The system feels behind the current year.",
+			"I cannot recommend this release until core modules catch up.",
+			"Basic modern features are missing from this build.",
+			"The OS feels outdated compared with what users need now.",
+			"People are moving away because required system modules are absent."
+		};
+
 		private static readonly string[] PraiseReports =
 		{
 			"This version feels smooth.",
@@ -385,13 +395,30 @@ namespace Game.World.Reports
 				kernel.ProcessLimit <= 0 ||
 				kernel.CrashRiskPercent >= 99f;
 
+			OsReleaseState release = releaseService != null ? releaseService.Current : default;
+			string missingRequiredModules = releaseService != null
+				? release.MissingRequiredModules
+				: "None";
+			float moduleRequirementPenalty = releaseService != null
+				? release.ModuleRequirementPenaltyPercent
+				: 0f;
+
 			return new UserReportContext(
 				system,
 				kernel,
 				security,
 				coreMissing,
 				kernelOffline,
-				CalculateIssueScore(system, kernel, security, coreMissing, kernelOffline)
+				IsMissingRequiredModules(missingRequiredModules),
+				missingRequiredModules,
+				moduleRequirementPenalty,
+				CalculateIssueScore(
+					system,
+					kernel,
+					security,
+					coreMissing,
+					kernelOffline,
+					moduleRequirementPenalty)
 			);
 		}
 
@@ -400,7 +427,8 @@ namespace Game.World.Reports
 			OsKernelRuntimeMetrics kernel,
 			OsSecurityRuntimeMetrics security,
 			bool coreMissing,
-			bool kernelOffline)
+			bool kernelOffline,
+			float moduleRequirementPenaltyPercent)
 		{
 			int score = 0;
 
@@ -423,6 +451,7 @@ namespace Game.World.Reports
 			score += ScoreAbove(security.Vulnerabilities, 8f, 5f, 4, 2);
 			score += ScoreAbove(security.FalseBlocksPercent, 30f, 15f, 3, 1);
 			score += ScoreBelow(security.EncryptionPercent, 25f, 50f, 3, 1);
+			score += ScoreAbove(moduleRequirementPenaltyPercent, 25f, 1f, 5, 3);
 
 			return score;
 		}
@@ -470,7 +499,8 @@ namespace Game.World.Reports
 				context.System.MemoryUsagePercent <= 55f &&
 				context.Security.Vulnerabilities <= 2 &&
 				context.Kernel.CrashRiskPercent <= 15f &&
-				context.System.NetworkEraScorePercent >= 100f;
+				context.System.NetworkEraScorePercent >= 100f &&
+				!context.HasMissingRequiredModules;
 		}
 
 		private bool IsStable(UserReportContext context)
@@ -480,7 +510,8 @@ namespace Game.World.Reports
 				context.System.SystemLoadPercent <= 55f &&
 				context.System.MemoryUsagePercent <= 70f &&
 				context.Security.Vulnerabilities <= 5 &&
-				context.Kernel.CrashRiskPercent <= 35f;
+				context.Kernel.CrashRiskPercent <= 35f &&
+				!context.HasMissingRequiredModules;
 		}
 
 		private UserReportCandidate SelectCandidate(UserReportContext context)
@@ -559,6 +590,15 @@ namespace Game.World.Reports
 				"Firewall",
 				60 + Mathf.RoundToInt(context.Security.FalseBlocksPercent),
 				FalseBlockReports);
+
+			AddCondition(
+				context.HasMissingRequiredModules,
+				context.ModuleRequirementPenaltyPercent >= 25f
+					? UserReportSeverity.Critical
+					: UserReportSeverity.Warning,
+				"Modules",
+				85 + Mathf.RoundToInt(context.ModuleRequirementPenaltyPercent),
+				OutdatedModuleReports);
 
 			AddCondition(
 				Mood == UserReportMood.Excellent || Mood == UserReportMood.Stable,
@@ -779,6 +819,12 @@ namespace Game.World.Reports
 			return value <= warningThreshold ? warningScore : 0;
 		}
 
+		private static bool IsMissingRequiredModules(string missingRequiredModules)
+		{
+			return !string.IsNullOrWhiteSpace(missingRequiredModules) &&
+				   !string.Equals(missingRequiredModules, "None", StringComparison.OrdinalIgnoreCase);
+		}
+
 		private static int StableStringHash(string value)
 		{
 			unchecked
@@ -826,6 +872,9 @@ namespace Game.World.Reports
 			public readonly OsSecurityRuntimeMetrics Security;
 			public readonly bool CoreMissing;
 			public readonly bool KernelOffline;
+			public readonly bool HasMissingRequiredModules;
+			public readonly string MissingRequiredModules;
+			public readonly float ModuleRequirementPenaltyPercent;
 			public readonly int IssueScore;
 
 			public UserReportContext(
@@ -834,6 +883,9 @@ namespace Game.World.Reports
 				OsSecurityRuntimeMetrics security,
 				bool coreMissing,
 				bool kernelOffline,
+				bool hasMissingRequiredModules,
+				string missingRequiredModules,
+				float moduleRequirementPenaltyPercent,
 				int issueScore)
 			{
 				System = system;
@@ -841,6 +893,9 @@ namespace Game.World.Reports
 				Security = security;
 				CoreMissing = coreMissing;
 				KernelOffline = kernelOffline;
+				HasMissingRequiredModules = hasMissingRequiredModules;
+				MissingRequiredModules = missingRequiredModules ?? "None";
+				ModuleRequirementPenaltyPercent = moduleRequirementPenaltyPercent;
 				IssueScore = issueScore;
 			}
 
@@ -852,6 +907,9 @@ namespace Game.World.Reports
 					new OsSecurityRuntimeMetrics("Critical", "None", 99, 0f, 0f),
 					true,
 					true,
+					false,
+					"None",
+					0f,
 					15
 				);
 			}

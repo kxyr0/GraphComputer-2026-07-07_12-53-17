@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,6 +7,14 @@ namespace Game.IDE.Presentation
 	[DisallowMultipleComponent]
 	public sealed class IdeBuildButtonController : MonoBehaviour
 	{
+		private static readonly string[] BuildPipelineSteps =
+		{
+			"Compiling Kernel...",
+			"Linking File System...",
+			"Testing Drivers...",
+			"Validating Release..."
+		};
+
 		[SerializeField] private Button buildButton;
 
 		[Header("IDE")]
@@ -25,6 +34,14 @@ namespace Game.IDE.Presentation
 		[Header("Output")]
 		[SerializeField] private string outputTabId = "output";
 		[SerializeField] private bool clearOutputBeforeBuild = true;
+
+		[Header("Build Pipeline")]
+		[SerializeField] private bool simulateBuildPipeline = true;
+		[SerializeField, Min(0f)] private float minBuildStepDelay = 0.45f;
+		[SerializeField, Min(0f)] private float maxBuildStepDelay = 1.25f;
+		[SerializeField, Range(0f, 1f)] private float transientReleaseFailureChance = 0.1f;
+
+		private Coroutine buildCoroutine;
 
 		private void Reset()
 		{
@@ -73,20 +90,39 @@ namespace Game.IDE.Presentation
 			{
 				buildButton.onClick.RemoveListener(BuildCurrentCode);
 			}
+
+			if (buildCoroutine != null)
+			{
+				StopCoroutine(buildCoroutine);
+				buildCoroutine = null;
+				SetBuildButtonInteractable(true);
+			}
 		}
 
 		public void BuildCurrentCode()
 		{
+			if (buildCoroutine != null)
+			{
+				return;
+			}
+
+			buildCoroutine = StartCoroutine(BuildCurrentCodeRoutine());
+		}
+
+		private IEnumerator BuildCurrentCodeRoutine()
+		{
 			if (codeEditor == null)
 			{
 				Debug.LogError($"[{nameof(IdeBuildButtonController)}] Code editor is missing.", this);
-				return;
+				buildCoroutine = null;
+				yield break;
 			}
 
 			if (outputConsole == null)
 			{
 				Debug.LogError($"[{nameof(IdeBuildButtonController)}] Output console is missing.", this);
-				return;
+				buildCoroutine = null;
+				yield break;
 			}
 
 			if (bottomTabsController != null)
@@ -105,11 +141,45 @@ namespace Game.IDE.Presentation
 			}
 
 			string code = codeEditor.GetCode();
-			IdeBuildReport report = IdeBuildAnalyzer.Analyze(code);
-
 			string documentId = codeTabsController != null
 				? codeTabsController.ActiveDocumentId
 				: "unknown_document";
+
+			SetBuildButtonInteractable(false);
+
+			try
+			{
+				yield return WriteBuildPipelineSteps();
+				CompleteBuild(code, documentId);
+			}
+			finally
+			{
+				SetBuildButtonInteractable(true);
+				buildCoroutine = null;
+			}
+		}
+
+		private IEnumerator WriteBuildPipelineSteps()
+		{
+			if (!simulateBuildPipeline)
+			{
+				yield break;
+			}
+
+			foreach (string step in BuildPipelineSteps)
+			{
+				outputConsole.BeginWriteBatch();
+				outputConsole.WriteSystem(step);
+				outputConsole.EndWriteBatch(scrollToBottom: true);
+
+				yield return new WaitForSeconds(GetBuildStepDelay());
+			}
+		}
+
+		private void CompleteBuild(string code, string documentId)
+		{
+			IdeBuildReport report = IdeBuildAnalyzer.Analyze(code);
+			TryInjectTransientReleaseFailure(report);
 
 			if (codeRegistry == null)
 			{
@@ -145,6 +215,40 @@ namespace Game.IDE.Presentation
 			}
 
 			WriteReport(report);
+		}
+
+		private void TryInjectTransientReleaseFailure(IdeBuildReport report)
+		{
+			if (report == null ||
+				!report.IsSuccessful ||
+				transientReleaseFailureChance <= 0f ||
+				Random.value > transientReleaseFailureChance)
+			{
+				return;
+			}
+
+			report.Errors.Add("Release validation failed: driver smoke test timed out.");
+		}
+
+		private float GetBuildStepDelay()
+		{
+			float minDelay = Mathf.Max(0f, minBuildStepDelay);
+			float maxDelay = Mathf.Max(minDelay, maxBuildStepDelay);
+
+			if (Mathf.Approximately(minDelay, maxDelay))
+			{
+				return minDelay;
+			}
+
+			return Random.Range(minDelay, maxDelay);
+		}
+
+		private void SetBuildButtonInteractable(bool isInteractable)
+		{
+			if (buildButton != null)
+			{
+				buildButton.interactable = isInteractable;
+			}
 		}
 
 		private void WriteReport(IdeBuildReport report)

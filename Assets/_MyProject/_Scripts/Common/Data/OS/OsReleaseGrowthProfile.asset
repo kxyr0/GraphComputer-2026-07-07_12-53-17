@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 373640b0ce36474382ccc163267c633a, type: 3}
+  m_Name: OsReleaseGrowthProfile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.OS.Release.OsReleaseGrowthProfile
+  growthIntervalSeconds: 6
+  maxInstallations: 999999
+  firstWaveInstalls: 1
+  minDiscoveryInstalls: 0
+  maxDiscoveryInstalls: 12
+  quietQualityThreshold: 0.4
+  goodQualityThreshold: 0.65
+  excellentQualityThreshold: 0.85
+  quietRecommendationRate: 0.03
+  goodRecommendationRate: 0.28
+  excellentRecommendationRate: 0.75
+  badReputationChurnRate: 0.3
+  minimumRating: 1
+  maximumRating: 5
+  ratingSmoothing: 0.35

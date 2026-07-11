@@ -11,9 +11,15 @@ namespace Game.OS.Release
 		public readonly float UserRating;
 		public readonly string LatestRelease;
 		public readonly string UpdateStatus;
+		public readonly string ModuleRequirementsStatus;
+		public readonly string MissingRequiredModules;
+		public readonly float ModuleRequirementPenaltyPercent;
+		public readonly float PlayerReputationPercent;
+		public readonly string PlayerReputationTier;
 
 		public string ActiveInstallationsText => ActiveInstallations.ToString("N0", CultureInfo.InvariantCulture);
 		public string UserRatingText => $"{UserRating:0.0} / 5";
+		public string PlayerReputationText => $"{PlayerReputationPercent:0}%";
 
 		public OsReleaseState(
 			bool isPublished,
@@ -22,7 +28,12 @@ namespace Game.OS.Release
 			int activeInstallations,
 			float userRating,
 			string latestRelease,
-			string updateStatus)
+			string updateStatus,
+			string moduleRequirementsStatus,
+			string missingRequiredModules,
+			float moduleRequirementPenaltyPercent,
+			float playerReputationPercent,
+			string playerReputationTier)
 		{
 			IsPublished = isPublished;
 			ReleaseChannel = releaseChannel ?? "None";
@@ -31,6 +42,11 @@ namespace Game.OS.Release
 			UserRating = userRating;
 			LatestRelease = latestRelease ?? "None";
 			UpdateStatus = updateStatus ?? "Not Published";
+			ModuleRequirementsStatus = moduleRequirementsStatus ?? "Not Configured";
+			MissingRequiredModules = missingRequiredModules ?? "None";
+			ModuleRequirementPenaltyPercent = moduleRequirementPenaltyPercent;
+			PlayerReputationPercent = playerReputationPercent;
+			PlayerReputationTier = playerReputationTier ?? "None";
 		}
 	}
 }

@@ -600,7 +600,7 @@ namespace Game.Nodes.Runtime
 		{
 			TMP_Text text = CreateText(summaryRoot, objectName);
 			ApplySummaryTextStyle(text, wrap);
-			text.text = $"{label}: -";
+			Game.UI.RuntimeTextRefresh.SetText(text, $"{label}: -");
 			return text;
 		}
 
@@ -781,7 +781,7 @@ namespace Game.Nodes.Runtime
 		{
 			if (text != null)
 			{
-				text.text = $"{label}: {value}";
+				Game.UI.RuntimeTextRefresh.SetText(text, $"{label}: {value}");
 			}
 		}
 
@@ -811,7 +811,7 @@ namespace Game.Nodes.Runtime
 					ApplyReportTextStyle(row);
 				}
 
-				row.text = FormatReport(entry);
+				Game.UI.RuntimeTextRefresh.SetText(row, FormatReport(entry));
 				reportRows.Add(row);
 			}
 

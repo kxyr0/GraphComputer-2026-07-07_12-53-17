@@ -91,28 +91,28 @@ namespace Game.Nodes.Presentation
 
 			if (rowText != null)
 			{
-				rowText.text = BuildSingleLine(currentLabel, currentValue);
-				rowText.color = GetStateColor(visualState, defaultRowTextColor);
+				Game.UI.RuntimeTextRefresh.SetText(rowText, BuildSingleLine(currentLabel, currentValue));
+				Game.UI.RuntimeTextRefresh.SetColor(rowText, GetStateColor(visualState, defaultRowTextColor));
 				return;
 			}
 
 			if (labelText != null && labelText == valueText)
 			{
-				labelText.text = BuildSingleLine(currentLabel, currentValue);
-				labelText.color = GetStateColor(visualState, defaultLabelTextColor);
+				Game.UI.RuntimeTextRefresh.SetText(labelText, BuildSingleLine(currentLabel, currentValue));
+				Game.UI.RuntimeTextRefresh.SetColor(labelText, GetStateColor(visualState, defaultLabelTextColor));
 				return;
 			}
 
 			if (labelText != null)
 			{
-				labelText.text = currentLabel;
-				labelText.color = defaultLabelTextColor;
+				Game.UI.RuntimeTextRefresh.SetText(labelText, currentLabel);
+				Game.UI.RuntimeTextRefresh.SetColor(labelText, defaultLabelTextColor);
 			}
 
 			if (valueText != null)
 			{
-				valueText.text = currentValue;
-				valueText.color = GetStateColor(visualState, defaultValueTextColor);
+				Game.UI.RuntimeTextRefresh.SetText(valueText, currentValue);
+				Game.UI.RuntimeTextRefresh.SetColor(valueText, GetStateColor(visualState, defaultValueTextColor));
 			}
 		}
 

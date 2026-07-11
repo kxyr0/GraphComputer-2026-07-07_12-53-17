@@ -209,22 +209,22 @@ namespace Michsky.MUIP
                     if (normalText != null)
                     {
                         normalText.gameObject.SetActive(true);
-                        normalText.text = buttonText;
                         if (useCustomTextSize == false) { normalText.fontSize = textSize; }
+                        Game.UI.RuntimeTextRefresh.SetText(normalText, buttonText);
                     }
 
                     if (highlightedText != null)
                     {
                         highlightedText.gameObject.SetActive(true);
-                        highlightedText.text = buttonText;
                         if (useCustomTextSize == false) { highlightedText.fontSize = textSize; }
+                        Game.UI.RuntimeTextRefresh.SetText(highlightedText, buttonText);
                     }
 
                     if (disabledText != null)
                     {
                         disabledText.gameObject.SetActive(true);
-                        disabledText.text = buttonText;
                         if (useCustomTextSize == false) { disabledText.fontSize = textSize; }
+                        Game.UI.RuntimeTextRefresh.SetText(disabledText, buttonText);
                     }
                 }
 

@@ -21,10 +21,23 @@ namespace Game.UI.OS
 		[Header("Buttons")]
 		[SerializeField] private Button closeButton;
 
+		[Header("Tabs")]
+		[SerializeField] private OsWindowTabsController tabsController;
+		[SerializeField] private bool selectDefaultTabOnOpen = true;
+
 		[Header("Input")]
 		[SerializeField] private bool openWithTab = true;
 		[SerializeField] private bool closeWithTabWhenVisible = true;
 		[SerializeField] private bool ignoreTabWhenTextInputFocused = true;
+
+		[Header("Input Actions")]
+		[SerializeField] private InputActionReference toggleInputAction;
+		[SerializeField] private bool closeWithToggleActionWhenVisible = true;
+		[SerializeField] private bool ignoreToggleActionWhenTextInputFocused;
+
+		[Header("Input Blocking")]
+		[SerializeField] private CanvasGroup[] blockInputWhenGroupsVisible;
+		[SerializeField, Range(0f, 1f)] private float blockInputAlphaThreshold = 0.05f;
 
 		[Header("Animation")]
 		[SerializeField] private bool animateScale = true;
@@ -40,6 +53,8 @@ namespace Game.UI.OS
 		[SerializeField] private UnityEvent closed;
 
 		private bool isVisible;
+		private bool toggleInputActionEnabledByController;
+		private int lastToggleInputActionFrame = -1;
 
 		public bool IsVisible => isVisible;
 
@@ -48,6 +63,7 @@ namespace Game.UI.OS
 			windowGroup = GetComponent<CanvasGroup>();
 			windowTransform = transform as RectTransform;
 			closeButton = GetComponentInChildren<Button>(true);
+			tabsController = GetComponentInChildren<OsWindowTabsController>(true);
 		}
 
 		private void Awake()
@@ -62,7 +78,17 @@ namespace Game.UI.OS
 				windowTransform = transform as RectTransform;
 			}
 
+			if (tabsController == null)
+			{
+				tabsController = GetComponentInChildren<OsWindowTabsController>(true);
+			}
+
 			ApplyInstant(visibleOnStart);
+
+			if (visibleOnStart && selectDefaultTabOnOpen)
+			{
+				SelectDefaultTab();
+			}
 		}
 
 		private void OnEnable()
@@ -71,6 +97,8 @@ namespace Game.UI.OS
 			{
 				closeButton.onClick.AddListener(Close);
 			}
+
+			RegisterToggleInputAction();
 		}
 
 		private void OnDisable()
@@ -79,16 +107,24 @@ namespace Game.UI.OS
 			{
 				closeButton.onClick.RemoveListener(Close);
 			}
+
+			UnregisterToggleInputAction();
 		}
 
 		private void Update()
 		{
+			if (lastToggleInputActionFrame == Time.frameCount)
+			{
+				return;
+			}
+
 			if (!openWithTab || WasTabPressedThisFrame() == false)
 			{
 				return;
 			}
 
-			if (ignoreTabWhenTextInputFocused && IsTextInputFocused())
+			if (IsInputBlocked() ||
+				ignoreTabWhenTextInputFocused && IsTextInputFocused())
 			{
 				return;
 			}
@@ -120,6 +156,92 @@ namespace Game.UI.OS
 			SetVisible(!isVisible);
 		}
 
+		private void RegisterToggleInputAction()
+		{
+			InputAction action = toggleInputAction != null
+				? toggleInputAction.action
+				: null;
+
+			if (action == null)
+			{
+				return;
+			}
+
+			action.performed += HandleToggleInputAction;
+
+			if (!action.enabled)
+			{
+				action.Enable();
+				toggleInputActionEnabledByController = true;
+			}
+			else
+			{
+				toggleInputActionEnabledByController = false;
+			}
+		}
+
+		private void UnregisterToggleInputAction()
+		{
+			InputAction action = toggleInputAction != null
+				? toggleInputAction.action
+				: null;
+
+			if (action == null)
+			{
+				toggleInputActionEnabledByController = false;
+				return;
+			}
+
+			action.performed -= HandleToggleInputAction;
+
+			if (toggleInputActionEnabledByController && action.enabled)
+			{
+				action.Disable();
+			}
+
+			toggleInputActionEnabledByController = false;
+		}
+
+		private void HandleToggleInputAction(InputAction.CallbackContext context)
+		{
+			lastToggleInputActionFrame = Time.frameCount;
+
+			if (IsInputBlocked() ||
+				ignoreToggleActionWhenTextInputFocused && IsTextInputFocused())
+			{
+				return;
+			}
+
+			if (isVisible && closeWithToggleActionWhenVisible)
+			{
+				Close();
+				return;
+			}
+
+			if (!isVisible)
+			{
+				Open();
+			}
+		}
+
+		private bool IsInputBlocked()
+		{
+			if (blockInputWhenGroupsVisible == null)
+			{
+				return false;
+			}
+
+			foreach (CanvasGroup group in blockInputWhenGroupsVisible)
+			{
+				if (group != null && group.alpha > blockInputAlphaThreshold)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		private void SetVisible(bool visible)
 		{
 			if (windowGroup == null)
@@ -141,27 +263,50 @@ namespace Game.UI.OS
 			windowGroup.interactable = visible;
 			windowGroup.blocksRaycasts = visible;
 
+			if (visible && selectDefaultTabOnOpen)
+			{
+				SelectDefaultTab();
+			}
+
 			if (animateScale && windowTransform != null)
 			{
+				Vector3 targetScale = Vector3.one * (visible ? visibleScale : hiddenScale);
+
 				if (visible)
 				{
 					windowTransform.localScale = Vector3.one * hiddenScale;
 				}
 
-				Tween.Scale(
-					windowTransform,
-					endValue: Vector3.one * (visible ? visibleScale : hiddenScale),
+				if ((windowTransform.localScale - targetScale).sqrMagnitude <= 0.000001f)
+				{
+					windowTransform.localScale = targetScale;
+				}
+				else
+				{
+					Tween.Scale(
+						windowTransform,
+						endValue: targetScale,
+						duration: visible ? showDuration : hideDuration,
+						ease: visible ? showEase : hideEase
+					);
+				}
+			}
+
+			float targetAlpha = visible ? visibleAlpha : hiddenAlpha;
+
+			if (Mathf.Approximately(windowGroup.alpha, targetAlpha))
+			{
+				windowGroup.alpha = targetAlpha;
+			}
+			else
+			{
+				Tween.Alpha(
+					windowGroup,
+					endValue: targetAlpha,
 					duration: visible ? showDuration : hideDuration,
 					ease: visible ? showEase : hideEase
 				);
 			}
-
-			Tween.Alpha(
-				windowGroup,
-				endValue: visible ? visibleAlpha : hiddenAlpha,
-				duration: visible ? showDuration : hideDuration,
-				ease: visible ? showEase : hideEase
-			);
 
 			if (visible)
 			{
@@ -171,6 +316,16 @@ namespace Game.UI.OS
 			{
 				closed?.Invoke();
 			}
+		}
+
+		private void SelectDefaultTab()
+		{
+			if (tabsController == null)
+			{
+				tabsController = GetComponentInChildren<OsWindowTabsController>(true);
+			}
+
+			tabsController?.SelectDefault();
 		}
 
 		private void ApplyInstant(bool visible)

@@ -132,6 +132,21 @@ namespace Game.World.Time
 			TimeChanged?.Invoke();
 		}
 
+		public void DebugAdvanceMinutes(int minutesToAdd)
+		{
+			AddMinutes(minutesToAdd);
+		}
+
+		public void DebugAdvanceHours(int hoursToAdd)
+		{
+			DebugAdvanceMinutes(hoursToAdd * 60);
+		}
+
+		public void DebugAdvanceDays(int daysToAdd)
+		{
+			DebugAdvanceHours(daysToAdd * 24);
+		}
+
 		public string GetClockText()
 		{
 			return $"{Hour:00}:{Minute:00}";

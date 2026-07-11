@@ -483,7 +483,7 @@ namespace Game.IDE.Presentation
 
 			isChangingTextInternally = true;
 
-			consoleInput.SetTextWithoutNotify(value ?? string.Empty);
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(consoleInput, value);
 
 			caretPosition = Mathf.Clamp(caretPosition, 0, consoleInput.text.Length);
 

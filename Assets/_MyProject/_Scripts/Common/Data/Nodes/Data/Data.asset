@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Data
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
   json: "{\n  \"id\": \"data\",\n  \"title\": \"Data\",\n  \"size\": {\n    \"x\":
-    560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\": \"#102333DD\",\n 
-    \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n  \"stats\":
+    560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\": \"#000000DD\",\n 
+    \"headerColor\": \"#000000DD\",\n  \"accentColor\": \"#000000DD\",\n  \"stats\":
     [\n    {\n      \"label\": \"File System\",\n      \"value\": \"FAT-95\"\n   
     },\n    {\n      \"label\": \"Read Speed\",\n      \"value\": \"0MB/s\"\n   
     },\n    {\n      \"label\": \"Data Safety\",\n      \"value\": \"0%\"\n    },\n   

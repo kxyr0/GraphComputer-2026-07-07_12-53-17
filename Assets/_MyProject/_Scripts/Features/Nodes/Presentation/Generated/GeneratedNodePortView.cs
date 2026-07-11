@@ -96,9 +96,9 @@ namespace Game.Nodes.Presentation
 
 			if (labelText != null)
 			{
-				labelText.text = port.label;
 				labelText.alignment = textAlignment;
 				labelText.raycastTarget = true;
+				Game.UI.RuntimeTextRefresh.SetText(labelText, port.label);
 			}
 
 			PortColor = NodeColorParser.ParseColor(port.color, Color.cyan);

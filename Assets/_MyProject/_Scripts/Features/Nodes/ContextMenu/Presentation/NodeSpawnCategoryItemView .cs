@@ -72,18 +72,18 @@ namespace Game.Nodes.Presentation
 
 			if (titleText != null)
 			{
-				titleText.text = title;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, title);
 			}
 
 			if (countText != null)
 			{
 				countText.gameObject.SetActive(!isBack && count >= 0);
-				countText.text = count.ToString();
+				Game.UI.RuntimeTextRefresh.SetText(countText, count.ToString());
 			}
 
 			if (arrowText != null)
 			{
-				arrowText.text = isBack ? "←" : "›";
+				Game.UI.RuntimeTextRefresh.SetText(arrowText, isBack ? "←" : "›");
 			}
 
 			if (backgroundImage != null)

@@ -43,12 +43,12 @@ namespace Game.IDE.Presentation
 
 			if (titleText != null)
 			{
-				titleText.text = entry.DisplayText;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, entry.DisplayText);
 			}
 
 			if (kindText != null)
 			{
-				kindText.text = entry.Kind;
+				Game.UI.RuntimeTextRefresh.SetText(kindText, entry.Kind);
 			}
 
 			if (backgroundImage != null)

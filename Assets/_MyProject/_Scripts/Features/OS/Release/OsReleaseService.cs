@@ -1,5 +1,8 @@
 using Game.IDE.Presentation;
 using Game.Nodes.Runtime;
+using Game.OS.Reputation;
+using Game.OS.Requirements;
+using Game.World.Time;
 using UnityEngine;
 
 namespace Game.OS.Release
@@ -20,11 +23,15 @@ namespace Game.OS.Release
 		[SerializeField] private string releaseVersion = "0.1.0";
 
 		[Header("Growth")]
-		[SerializeField, Min(0.5f)] private float growthIntervalSeconds = 6f;
-		[SerializeField, Min(0)] private int minInstallGrowth = 8;
-		[SerializeField, Min(0)] private int maxInstallGrowth = 64;
-		[SerializeField, Min(1)] private int maxInstallations = 999999;
-		[SerializeField, Range(0.01f, 1f)] private float ratingSmoothing = 0.35f;
+		[SerializeField] private OsReleaseGrowthProfile growthProfile;
+
+		[Header("Module Requirements")]
+		[SerializeField] private OsModuleRequirementProfile moduleRequirementProfile;
+		[SerializeField] private GameTimeService timeService;
+
+		[Header("Reputation")]
+		[SerializeField] private OsPlayerReputationService reputationService;
+		[SerializeField] private bool usePlayerReputation = true;
 
 		[Header("Debug")]
 		[SerializeField] private bool logDeployResult = true;
@@ -36,16 +43,43 @@ namespace Game.OS.Release
 		private string latestRelease = NoValue;
 		private string updateStatus = "Not Published";
 		private float growthTimer;
+		private bool firstGrowthApplied;
 
-		public OsReleaseState Current => new OsReleaseState(
-			isPublished,
-			isPublished ? releaseChannel : NoValue,
-			HasSupportedDevices ? supportedDevices : NoValue,
-			activeInstallations,
-			userRating,
-			isPublished ? latestRelease : NoValue,
-			updateStatus
-		);
+		public OsReleaseState Current
+		{
+			get
+			{
+				float reputation = 0f;
+				string reputationTier = NoValue;
+				OsModuleRequirementEvaluation requirements = EvaluateModuleRequirements();
+
+				if (usePlayerReputation)
+				{
+					ResolveReputationService();
+
+					if (reputationService != null)
+					{
+						reputation = reputationService.CurrentReputationPercent;
+						reputationTier = reputationService.CurrentTier;
+					}
+				}
+
+				return new OsReleaseState(
+					isPublished,
+					isPublished ? releaseChannel : NoValue,
+					HasSupportedDevices ? supportedDevices : NoValue,
+					activeInstallations,
+					userRating,
+					isPublished ? latestRelease : NoValue,
+					updateStatus,
+					requirements.StatusText,
+					requirements.MissingModulesText,
+					requirements.QualityPenalty * 100f,
+					reputation,
+					reputationTier
+				);
+			}
+		}
 
 		public bool HasPublishedBuild => isPublished;
 		public bool HasSupportedDevices => !string.IsNullOrWhiteSpace(supportedDevices) &&
@@ -67,7 +101,7 @@ namespace Game.OS.Release
 
 			growthTimer += Time.unscaledDeltaTime;
 
-			if (growthTimer < growthIntervalSeconds)
+			if (growthTimer < GetGrowthIntervalSeconds())
 			{
 				return;
 			}
@@ -111,6 +145,7 @@ namespace Game.OS.Release
 			latestRelease = releaseVersion;
 			updateStatus = HasSupportedDevices ? "Published" : "No Devices";
 			growthTimer = 0f;
+			firstGrowthApplied = false;
 
 			LogDeploy(
 				$"Deploy published. Version={latestRelease}, Devices={supportedDevices}.");
@@ -127,28 +162,43 @@ namespace Game.OS.Release
 			latestRelease = NoValue;
 			updateStatus = "Not Published";
 			growthTimer = 0f;
+			firstGrowthApplied = false;
 		}
 
 		private void AdvanceReleaseGrowth()
 		{
-			float quality = CalculateReleaseQuality();
-			int growth = Mathf.RoundToInt(Mathf.Lerp(minInstallGrowth, maxInstallGrowth, quality));
+			if (growthProfile == null)
+			{
+				updateStatus = "Missing Growth Profile";
+				return;
+			}
 
-			activeInstallations = Mathf.Clamp(
-				activeInstallations + Mathf.Max(0, growth),
-				0,
-				maxInstallations
+			OsModuleRequirementEvaluation requirements = EvaluateModuleRequirements();
+			float quality = CalculateReleaseQuality(requirements);
+			OsReleaseGrowthResult growth = growthProfile.Evaluate(
+				activeInstallations,
+				quality,
+				userRating,
+				allowFirstWave: !firstGrowthApplied,
+				ResolveAudienceModifiers()
 			);
 
-			float targetRating = Mathf.Clamp(1f + quality * 4f, 1f, 5f);
-			userRating = activeInstallations <= 0
-				? 0f
-				: Mathf.Lerp(userRating <= 0f ? targetRating : userRating, targetRating, ratingSmoothing);
+			activeInstallations = growth.ActiveInstallations;
+			userRating = growth.UserRating;
+			updateStatus = requirements.HasMissingModules ? requirements.StatusText : growth.UpdateStatus;
+			firstGrowthApplied = true;
 
-			updateStatus = "Current";
+			ApplyReputationFeedback(quality, growth);
 		}
 
-		private float CalculateReleaseQuality()
+		private float GetGrowthIntervalSeconds()
+		{
+			return growthProfile != null
+				? growthProfile.GrowthIntervalSeconds
+				: OsReleaseGrowthProfile.DefaultGrowthIntervalSeconds;
+		}
+
+		private float CalculateReleaseQuality(OsModuleRequirementEvaluation requirements)
 		{
 			ResolveServices();
 
@@ -164,8 +214,9 @@ namespace Game.OS.Release
 			float load = 1f - metrics.SystemLoadPercent / 100f;
 			float memory = 1f - metrics.MemoryUsagePercent / 100f;
 			float network = metrics.NetworkEraScorePercent / 100f;
+			float baseQuality = stability * 0.4f + load * 0.25f + memory * 0.2f + network * 0.15f;
 
-			return Mathf.Clamp01(stability * 0.4f + load * 0.25f + memory * 0.2f + network * 0.15f);
+			return Mathf.Clamp01(baseQuality - requirements.QualityPenalty);
 		}
 
 		private void ResolveServices()
@@ -184,6 +235,82 @@ namespace Game.OS.Release
 			{
 				metricsService = FindAnyObjectByType<OsRuntimeMetricsService>(FindObjectsInactive.Include);
 			}
+
+			if (timeService == null)
+			{
+				timeService = FindAnyObjectByType<GameTimeService>(FindObjectsInactive.Include);
+			}
+
+			ResolveReputationService();
+		}
+
+		private OsModuleRequirementEvaluation EvaluateModuleRequirements()
+		{
+			int year = GetCurrentYear();
+
+			if (moduleRequirementProfile == null)
+			{
+				return OsModuleRequirementEvaluation.NotConfigured(year);
+			}
+
+			ResolveServices();
+
+			if (metricsService == null)
+			{
+				return OsModuleRequirementEvaluation.NotConfigured(year);
+			}
+
+			metricsService.Recalculate();
+
+			return moduleRequirementProfile.Evaluate(
+				year,
+				metricsService.HasOperationalReachableDefinition
+			);
+		}
+
+		private int GetCurrentYear()
+		{
+			if (timeService == null)
+			{
+				timeService = FindAnyObjectByType<GameTimeService>(FindObjectsInactive.Include);
+			}
+
+			return timeService != null ? timeService.Year : 1995;
+		}
+
+		private OsReleaseAudienceModifiers ResolveAudienceModifiers()
+		{
+			if (!usePlayerReputation)
+			{
+				return OsReleaseAudienceModifiers.Neutral;
+			}
+
+			ResolveReputationService();
+
+			return reputationService != null
+				? reputationService.GetAudienceModifiers()
+				: OsReleaseAudienceModifiers.Neutral;
+		}
+
+		private void ApplyReputationFeedback(float releaseQuality, OsReleaseGrowthResult growth)
+		{
+			if (!usePlayerReputation)
+			{
+				return;
+			}
+
+			ResolveReputationService();
+			reputationService?.ApplyReleaseFeedback(releaseQuality, growth);
+		}
+
+		private void ResolveReputationService()
+		{
+			if (!usePlayerReputation || reputationService != null)
+			{
+				return;
+			}
+
+			reputationService = FindAnyObjectByType<OsPlayerReputationService>(FindObjectsInactive.Include);
 		}
 
 		private static string ResolveSupportedDevices(NodeCodeState systemCoreState)

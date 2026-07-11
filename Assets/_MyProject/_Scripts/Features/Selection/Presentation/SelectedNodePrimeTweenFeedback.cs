@@ -81,12 +81,19 @@ namespace Game.Selection.Presentation
 					? Brighten(restHeaderColor, headerBrightness)
 					: restHeaderColor;
 
-				Tween.Color(
-					headerGraphic,
-					endValue: targetColor,
-					duration: duration,
-					ease: ease,
-					useUnscaledTime: useUnscaledTime);
+				if (Approximately(headerGraphic.color, targetColor))
+				{
+					headerGraphic.color = targetColor;
+				}
+				else
+				{
+					Tween.Color(
+						headerGraphic,
+						endValue: targetColor,
+						duration: duration,
+						ease: ease,
+						useUnscaledTime: useUnscaledTime);
+				}
 			}
 
 			if (scaleTarget != null)
@@ -95,12 +102,19 @@ namespace Game.Selection.Presentation
 					? restScale * selectedScaleMultiplier
 					: restScale;
 
-				Tween.Scale(
-					scaleTarget,
-					endValue: targetScale,
-					duration: duration,
-					ease: ease,
-					useUnscaledTime: useUnscaledTime);
+				if ((scaleTarget.localScale - targetScale).sqrMagnitude <= 0.000001f)
+				{
+					scaleTarget.localScale = targetScale;
+				}
+				else
+				{
+					Tween.Scale(
+						scaleTarget,
+						endValue: targetScale,
+						duration: duration,
+						ease: ease,
+						useUnscaledTime: useUnscaledTime);
+				}
 			}
 		}
 
@@ -153,6 +167,14 @@ namespace Game.Selection.Presentation
 			Color result = Color.Lerp(color, Color.white, amount);
 			result.a = color.a;
 			return result;
+		}
+
+		private static bool Approximately(Color left, Color right)
+		{
+			return Mathf.Approximately(left.r, right.r) &&
+				   Mathf.Approximately(left.g, right.g) &&
+				   Mathf.Approximately(left.b, right.b) &&
+				   Mathf.Approximately(left.a, right.a);
 		}
 	}
 }

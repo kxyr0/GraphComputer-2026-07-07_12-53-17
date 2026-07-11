@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
+using Michsky.MUIP;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,6 +11,8 @@ namespace Game.UI.OS
 	{
 		[SerializeField] private TMP_Text titleText;
 		[SerializeField] private RectTransform contentRoot;
+		[SerializeField] private GameObject rowTemplateObject;
+		[SerializeField] private ButtonManager rowButtonTemplate;
 		[SerializeField] private TMP_Text rowTemplate;
 		[SerializeField] private string rowFormat = "{0}: {1}";
 		[SerializeField] private bool hideTemplate = true;
@@ -18,7 +21,7 @@ namespace Game.UI.OS
 		[SerializeField] private Color warningColor = new Color(1f, 0.64f, 0.1f);
 		[SerializeField] private Color badColor = new Color(1f, 0.18f, 0.18f);
 
-		private readonly List<TMP_Text> generatedRows = new();
+		private readonly List<GameObject> generatedRows = new();
 
 		public void Render(OsInfoSection section)
 		{
@@ -30,12 +33,14 @@ namespace Game.UI.OS
 
 			if (titleText != null)
 			{
-				titleText.text = section.Title;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, section.Title);
 			}
 
 			Clear();
 
-			if (rowTemplate == null)
+			GameObject template = ResolveRowTemplateObject();
+
+			if (template == null)
 			{
 				Debug.LogWarning($"[{nameof(OsInfoPanelView)}] Row template is missing.");
 				return;
@@ -49,15 +54,15 @@ namespace Game.UI.OS
 				return;
 			}
 
-			bool titleUsesTemplate = titleText != null && rowTemplate == titleText;
+			bool titleUsesTemplate = titleText != null && template == titleText.gameObject;
 
 			if (titleUsesTemplate)
 			{
-				rowTemplate.gameObject.SetActive(true);
+				template.SetActive(true);
 			}
 			else if (hideTemplate)
 			{
-				rowTemplate.gameObject.SetActive(false);
+				template.SetActive(false);
 			}
 
 			foreach (OsInfoEntry entry in section.Entries)
@@ -67,13 +72,12 @@ namespace Game.UI.OS
 					continue;
 				}
 
-				TMP_Text row = Object.Instantiate(rowTemplate, targetRoot);
-				row.name = $"OSInfo_{SanitizeName(entry.Label)}";
-				row.text = FormatRow(entry);
-				row.richText = true;
-				row.gameObject.SetActive(true);
+				GameObject rowObject = Object.Instantiate(template, targetRoot);
+				rowObject.name = $"OSInfo_{SanitizeName(entry.Label)}";
+				RenderRow(rowObject, entry);
+				rowObject.SetActive(true);
 
-				generatedRows.Add(row);
+				generatedRows.Add(rowObject);
 			}
 
 			if (rebuildLayout)
@@ -86,7 +90,7 @@ namespace Game.UI.OS
 		{
 			for (int i = generatedRows.Count - 1; i >= 0; i--)
 			{
-				TMP_Text row = generatedRows[i];
+				GameObject row = generatedRows[i];
 
 				if (row == null)
 				{
@@ -95,15 +99,30 @@ namespace Game.UI.OS
 
 				if (Application.isPlaying)
 				{
-					Object.Destroy(row.gameObject);
+					Object.Destroy(row);
 				}
 				else
 				{
-					Object.DestroyImmediate(row.gameObject);
+					Object.DestroyImmediate(row);
 				}
 			}
 
 			generatedRows.Clear();
+		}
+
+		private GameObject ResolveRowTemplateObject()
+		{
+			if (rowTemplateObject != null)
+			{
+				return rowTemplateObject;
+			}
+
+			if (rowButtonTemplate != null)
+			{
+				return rowButtonTemplate.gameObject;
+			}
+
+			return rowTemplate != null ? rowTemplate.gameObject : null;
 		}
 
 		private RectTransform ResolveContentRoot()
@@ -113,19 +132,91 @@ namespace Game.UI.OS
 				return contentRoot;
 			}
 
-			return rowTemplate != null
-				? rowTemplate.transform.parent as RectTransform
+			GameObject template = ResolveRowTemplateObject();
+			return template != null
+				? template.transform.parent as RectTransform
 				: null;
 		}
 
-		private string FormatRow(OsInfoEntry entry)
+		private void RenderRow(GameObject rowObject, OsInfoEntry entry)
+		{
+			OsInfoEntryView entryView = rowObject.GetComponent<OsInfoEntryView>();
+
+			if (entryView != null)
+			{
+				entryView.Render(
+					entry,
+					FormatPlainRow(entry),
+					GetToneColor(entry.Tone),
+					entry.Tone != OsInfoTone.Neutral
+				);
+				return;
+			}
+
+			ButtonManager buttonManager = rowObject.GetComponent<ButtonManager>();
+
+			if (buttonManager != null)
+			{
+				RenderButtonManager(buttonManager, entry);
+				return;
+			}
+
+			TMP_Text text = rowObject.GetComponent<TMP_Text>() ??
+							rowObject.GetComponentInChildren<TMP_Text>(true);
+
+			if (text == null)
+			{
+				Debug.LogWarning($"[{nameof(OsInfoPanelView)}] Row template has no supported text view.");
+				return;
+			}
+
+			text.richText = true;
+			Game.UI.RuntimeTextRefresh.SetText(text, FormatRichRow(entry));
+		}
+
+		private void RenderButtonManager(ButtonManager buttonManager, OsInfoEntry entry)
+		{
+			UIManagerButton uiManagerButton = buttonManager.GetComponent<UIManagerButton>();
+
+			if (uiManagerButton != null)
+			{
+				uiManagerButton.overrideColors = true;
+			}
+
+			buttonManager.enableText = true;
+			Game.UI.RuntimeTextRefresh.SetButtonText(buttonManager, FormatPlainRow(entry));
+
+			if (entry.Tone == OsInfoTone.Neutral)
+			{
+				return;
+			}
+
+			Color toneColor = GetToneColor(entry.Tone);
+			SetTextColor(buttonManager.normalText, toneColor);
+			SetTextColor(buttonManager.highlightedText, toneColor);
+			SetTextColor(buttonManager.disabledText, toneColor);
+		}
+
+		private static void SetTextColor(TMP_Text text, Color color)
+		{
+			if (text != null)
+			{
+				Game.UI.RuntimeTextRefresh.SetColor(text, color);
+			}
+		}
+
+		private string FormatPlainRow(OsInfoEntry entry)
 		{
 			string format = string.IsNullOrWhiteSpace(rowFormat)
 				? "{0}: {1}"
 				: rowFormat;
 
-			string text = string.Format(format, entry.Label, entry.Value);
+			return string.Format(format, entry.Label, entry.Value);
+		}
 
+		private string FormatRichRow(OsInfoEntry entry)
+		{
+			string text = FormatPlainRow(entry);
 			return entry.Tone == OsInfoTone.Neutral
 				? text
 				: $"<color=#{ColorUtility.ToHtmlStringRGB(GetToneColor(entry.Tone))}>{text}</color>";

@@ -14,6 +14,21 @@ namespace Game.IDE.Presentation
 		[SerializeField] private CanvasGroup[] groups;
 		[SerializeField] private CanvasGroup[] excludedGroups;
 
+		[Header("Close Cleanup")]
+		[SerializeField] private CanvasGroup[] hideOnCloseGroups;
+		[SerializeField, Range(0f, 1f)] private float hideOnCloseAlpha = 0f;
+
+		[Header("Open Recovery")]
+		[SerializeField] private bool restoreZeroScaleOnOpen = true;
+		[SerializeField] private Vector3 restoredOpenScale = Vector3.one;
+		[SerializeField] private RectTransform[] restoreScaleOnOpenTargets;
+		[SerializeField] private bool refreshChildTabsOnOpen = true;
+
+		[Header("Open Order")]
+		[SerializeField] private bool activateGroupsOnOpen = true;
+		[SerializeField] private bool bringGroupsToFrontOnOpen = true;
+		[SerializeField] private bool useChildCanvasGroupsFallback = true;
+
 		[Header("Buttons")]
 		[SerializeField] private Button closeButton;
 		[SerializeField] private Button openButton;
@@ -31,6 +46,7 @@ namespace Game.IDE.Presentation
 		[SerializeField, Min(0.01f)] private float hideDuration = 0.12f;
 		[SerializeField] private Ease showEase = Ease.OutCubic;
 		[SerializeField] private Ease hideEase = Ease.InCubic;
+		[SerializeField] private bool useUnscaledTime = true;
 
 		[Header("Events")]
 		[SerializeField] private UnityEvent opened;
@@ -38,6 +54,8 @@ namespace Game.IDE.Presentation
 
 		private readonly List<CanvasGroup> validGroups = new();
 		private bool isVisible;
+
+		public bool IsVisible => isVisible;
 
 		private void Awake()
 		{
@@ -55,6 +73,11 @@ namespace Game.IDE.Presentation
 
 			isVisible = visibleOnStart;
 			ApplyInstant(isVisible);
+
+			if (!isVisible)
+			{
+				HideCloseCleanupGroups();
+			}
 		}
 
 		private void OnDestroy()
@@ -87,7 +110,12 @@ namespace Game.IDE.Presentation
 
 		public void Open()
 		{
-			SetVisible(true, force: true);
+			SetVisible(true, force: true, instant: true);
+		}
+
+		public void OpenAnimated()
+		{
+			SetVisible(true, force: true, instant: false);
 		}
 
 		public void Close()
@@ -97,10 +125,16 @@ namespace Game.IDE.Presentation
 
 		public void Toggle()
 		{
-			SetVisible(!isVisible, force: true);
+			bool visible = !isVisible;
+			SetVisible(visible, force: true, instant: visible);
 		}
 
 		private void SetVisible(bool visible, bool force)
+		{
+			SetVisible(visible, force, instant: false);
+		}
+
+		private void SetVisible(bool visible, bool force, bool instant)
 		{
 			RebuildGroups();
 
@@ -111,9 +145,17 @@ namespace Game.IDE.Presentation
 
 			isVisible = visible;
 
+			if (visible)
+			{
+				PrepareCanvasForOpen();
+				PrepareGroupsForOpen();
+				RestoreScalesOnOpen();
+			}
+
 			float targetAlpha = visible ? visibleAlpha : hiddenAlpha;
 			float duration = visible ? showDuration : hideDuration;
 			Ease ease = visible ? showEase : hideEase;
+			bool applyInstant = instant || duration <= 0f;
 
 			foreach (CanvasGroup group in validGroups)
 			{
@@ -127,7 +169,7 @@ namespace Game.IDE.Presentation
 				group.interactable = visible;
 				group.blocksRaycasts = visible;
 
-				if (Mathf.Approximately(group.alpha, targetAlpha))
+				if (applyInstant || Mathf.Approximately(group.alpha, targetAlpha))
 				{
 					group.alpha = targetAlpha;
 					continue;
@@ -137,22 +179,33 @@ namespace Game.IDE.Presentation
 					group,
 					endValue: targetAlpha,
 					duration: duration,
-					ease: ease
+					ease: ease,
+					useUnscaledTime: useUnscaledTime
 				);
 			}
 
 			if (visible)
 			{
+				RefreshChildTabsOnOpen();
+				Canvas.ForceUpdateCanvases();
 				opened?.Invoke();
 			}
 			else
 			{
+				HideCloseCleanupGroups();
 				closed?.Invoke();
 			}
 		}
 
 		private void ApplyInstant(bool visible)
 		{
+			if (visible)
+			{
+				PrepareCanvasForOpen();
+				PrepareGroupsForOpen();
+				RestoreScalesOnOpen();
+			}
+
 			float alpha = visible ? visibleAlpha : hiddenAlpha;
 
 			foreach (CanvasGroup group in validGroups)
@@ -168,26 +221,218 @@ namespace Game.IDE.Presentation
 				group.interactable = visible;
 				group.blocksRaycasts = visible;
 			}
+
+			if (!visible)
+			{
+				HideCloseCleanupGroups();
+			}
+		}
+
+		private void HideCloseCleanupGroups()
+		{
+			if (hideOnCloseGroups == null)
+			{
+				return;
+			}
+
+			foreach (CanvasGroup group in hideOnCloseGroups)
+			{
+				if (group == null)
+				{
+					continue;
+				}
+
+				Tween.StopAll(onTarget: group);
+
+				group.alpha = hideOnCloseAlpha;
+				group.interactable = false;
+				group.blocksRaycasts = false;
+			}
+		}
+
+		private void RestoreScalesOnOpen()
+		{
+			RestoreScaleChainIfZero(transform);
+
+			foreach (CanvasGroup group in validGroups)
+			{
+				if (group != null)
+				{
+					RestoreScaleChainIfZero(group.transform);
+				}
+			}
+
+			if (!restoreZeroScaleOnOpen)
+			{
+				return;
+			}
+
+			if (restoreScaleOnOpenTargets == null)
+			{
+				return;
+			}
+
+			foreach (RectTransform target in restoreScaleOnOpenTargets)
+			{
+				RestoreScaleIfZero(target);
+			}
+		}
+
+		private void PrepareCanvasForOpen()
+		{
+			ActivateHierarchyForOpen();
+
+			Canvas ownCanvas = GetComponent<Canvas>();
+
+			if (ownCanvas != null)
+			{
+				ownCanvas.enabled = true;
+			}
+
+			GraphicRaycaster raycaster = GetComponent<GraphicRaycaster>();
+
+			if (raycaster != null)
+			{
+				raycaster.enabled = true;
+			}
+		}
+
+		private void ActivateHierarchyForOpen()
+		{
+			Transform current = transform;
+
+			while (current != null)
+			{
+				if (!current.gameObject.activeSelf)
+				{
+					current.gameObject.SetActive(true);
+				}
+
+				current = current.parent;
+			}
+		}
+
+		private void PrepareGroupsForOpen()
+		{
+			foreach (CanvasGroup group in validGroups)
+			{
+				if (group == null)
+				{
+					continue;
+				}
+
+				if (activateGroupsOnOpen)
+				{
+					group.gameObject.SetActive(true);
+				}
+
+				if (bringGroupsToFrontOnOpen)
+				{
+					group.transform.SetAsLastSibling();
+				}
+			}
+		}
+
+		private void RestoreScaleChainIfZero(Transform target)
+		{
+			Transform current = target;
+
+			while (current != null)
+			{
+				RestoreScaleIfZero(current);
+				current = current.parent;
+			}
+		}
+
+		private void RestoreScaleIfZero(Transform target)
+		{
+			if (target == null)
+			{
+				return;
+			}
+
+			Vector3 scale = target.localScale;
+
+			if (Mathf.Abs(scale.x) > 0.0001f &&
+				Mathf.Abs(scale.y) > 0.0001f &&
+				Mathf.Abs(scale.z) > 0.0001f)
+			{
+				return;
+			}
+
+			target.localScale = restoredOpenScale;
+		}
+
+		private void RefreshChildTabsOnOpen()
+		{
+			if (!refreshChildTabsOnOpen)
+			{
+				return;
+			}
+
+			IdeBottomTabsController[] tabControllers =
+				GetComponentsInChildren<IdeBottomTabsController>(true);
+
+			foreach (IdeBottomTabsController tabController in tabControllers)
+			{
+				tabController?.RefreshCurrentTab(animated: false);
+			}
+
+			IdeCodeTabsController[] codeTabsControllers =
+				GetComponentsInChildren<IdeCodeTabsController>(true);
+
+			foreach (IdeCodeTabsController codeTabsController in codeTabsControllers)
+			{
+				codeTabsController?.RefreshAllTabsVisuals();
+			}
 		}
 
 		private void RebuildGroups()
 		{
 			validGroups.Clear();
 
-			if (groups == null)
+			if (groups != null)
+			{
+				foreach (CanvasGroup group in groups)
+				{
+					TryAddGroup(group);
+				}
+			}
+
+			if (validGroups.Count > 0 || !useChildCanvasGroupsFallback)
 			{
 				return;
 			}
 
-			foreach (CanvasGroup group in groups)
-			{
-				if (group == null || validGroups.Contains(group) || IsExcluded(group))
-				{
-					continue;
-				}
+			CanvasGroup ownGroup = GetComponent<CanvasGroup>();
+			TryAddGroup(ownGroup);
 
-				validGroups.Add(group);
+			if (validGroups.Count > 0)
+			{
+				return;
 			}
+
+			CanvasGroup[] childGroups = GetComponentsInChildren<CanvasGroup>(true);
+
+			foreach (CanvasGroup group in childGroups)
+			{
+				TryAddGroup(group);
+
+				if (validGroups.Count > 0)
+				{
+					return;
+				}
+			}
+		}
+
+		private void TryAddGroup(CanvasGroup group)
+		{
+			if (group == null || validGroups.Contains(group) || IsExcluded(group))
+			{
+				return;
+			}
+
+			validGroups.Add(group);
 		}
 
 		private bool IsExcluded(CanvasGroup candidate)

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
   json: "{\n  \"id\": \"kernel\",\n  \"title\": \"Kernel\",\n  \"size\": {\n    \"x\":
     560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\": \"#000000DD\",\n 
-    \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n  \"stats\":
+    \"headerColor\": \"#000000DD\",\n  \"accentColor\": \"#19FFF5\",\n  \"stats\":
     [\n    {\n      \"label\": \"Kernel Type\",\n      \"value\": \"0\"\n    },\n   
     {\n      \"label\": \"Processes Limit\",\n      \"value\": \"0\"\n    },\n   
     {\n      \"label\": \"Crash Risk\",\n      \"value\": \"0%\"\n    },\n    {\n     

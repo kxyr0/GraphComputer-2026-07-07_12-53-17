@@ -54,7 +54,7 @@ namespace Game.IDE.Presentation
 
 			if (titleText != null)
 			{
-				titleText.text = title;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, title);
 			}
 
 			selectAction = onSelect;
@@ -69,6 +69,8 @@ namespace Game.IDE.Presentation
 			{
 				closeButton.onClick.AddListener(closeAction);
 			}
+
+			RefreshVisual();
 		}
 
 		public void SetSelected(
@@ -90,6 +92,21 @@ namespace Game.IDE.Presentation
 				titleText.color = selected
 					? selectedText
 					: normalText;
+			}
+
+			RefreshVisual();
+		}
+
+		public void RefreshVisual()
+		{
+			if (titleText != null)
+			{
+				Game.UI.RuntimeTextRefresh.Refresh(titleText);
+			}
+
+			if (transform is RectTransform rectTransform)
+			{
+				LayoutRebuilder.MarkLayoutForRebuild(rectTransform);
 			}
 		}
 

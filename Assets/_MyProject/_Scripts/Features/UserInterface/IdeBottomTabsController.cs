@@ -92,6 +92,7 @@ namespace Game.IDE.Presentation
 
 			if (currentIndex == index)
 			{
+				RefreshCurrentTab(animated: false);
 				return;
 			}
 
@@ -101,6 +102,25 @@ namespace Game.IDE.Presentation
 			{
 				bool selected = i == index;
 				ApplyTabState(tabs[i], selected, animated: true);
+			}
+		}
+
+		public void RefreshCurrentTab(bool animated = false)
+		{
+			if (tabs == null || tabs.Length == 0)
+			{
+				return;
+			}
+
+			int safeIndex = currentIndex >= 0 && currentIndex < tabs.Length
+				? currentIndex
+				: Mathf.Clamp(defaultTabIndex, 0, tabs.Length - 1);
+
+			currentIndex = safeIndex;
+
+			for (int i = 0; i < tabs.Length; i++)
+			{
+				ApplyTabState(tabs[i], i == safeIndex, animated);
 			}
 		}
 
@@ -147,12 +167,21 @@ namespace Game.IDE.Presentation
 
 				if (animated)
 				{
-					Tween.Alpha(
-						group,
-						endValue: selected ? 1f : 0f,
-						duration: fadeDuration,
-						ease: fadeEase
-					);
+					float targetAlpha = selected ? 1f : 0f;
+
+					if (Mathf.Approximately(group.alpha, targetAlpha))
+					{
+						group.alpha = targetAlpha;
+					}
+					else
+					{
+						Tween.Alpha(
+							group,
+							endValue: targetAlpha,
+							duration: fadeDuration,
+							ease: fadeEase
+						);
+					}
 				}
 				else
 				{

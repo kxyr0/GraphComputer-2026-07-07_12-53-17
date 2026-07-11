@@ -62,7 +62,7 @@ namespace Game.IDE.Presentation
 		{
 			if (titleText != null)
 			{
-				titleText.text = title;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, title);
 			}
 
 			EnsurePages();
@@ -550,7 +550,7 @@ That is intended. A node gives capability. Code makes it work."
 
 				if (label != null)
 				{
-					label.text = page.ButtonTitle;
+					Game.UI.RuntimeTextRefresh.SetText(label, page.ButtonTitle);
 				}
 
 				button.onClick.RemoveAllListeners();
@@ -638,14 +638,14 @@ That is intended. A node gives capability. Code makes it work."
 		{
 			if (pageTitleText != null)
 			{
-				pageTitleText.text = pageTitle;
+				Game.UI.RuntimeTextRefresh.SetText(pageTitleText, pageTitle);
 			}
 
 			if (descriptionText != null)
 			{
 				descriptionText.richText = false;
 				descriptionText.enableWordWrapping = true;
-				descriptionText.text = description;
+				Game.UI.RuntimeTextRefresh.SetText(descriptionText, description);
 			}
 		}
 

@@ -65,19 +65,12 @@ namespace Game.Nodes.Presentation
 			canvasGroup.interactable = true;
 			canvasGroup.blocksRaycasts = true;
 
-			Tween.Scale(
-				target,
-				endValue: Vector3.one * visibleScale,
-				duration: showDuration,
-				ease: showEase
-			);
+			TweenScaleIfNeeded(
+				Vector3.one * visibleScale,
+				showDuration,
+				showEase);
 
-			Tween.Alpha(
-				canvasGroup,
-				endValue: 1f,
-				duration: showDuration,
-				ease: Ease.OutCubic
-			);
+			TweenAlphaIfNeeded(1f, showDuration, Ease.OutCubic);
 		}
 
 		public void Hide(Action onCompleted = null)
@@ -103,20 +96,21 @@ namespace Game.Nodes.Presentation
 			canvasGroup.interactable = false;
 			canvasGroup.blocksRaycasts = false;
 
-			Tween.Scale(
-					target,
-					endValue: Vector3.one * hiddenScale,
-					duration: hideDuration,
-					ease: hideEase
-				)
-				.OnComplete(CompleteHide);
+			Tween scaleTween = TweenScaleIfNeeded(
+				Vector3.one * hiddenScale,
+				hideDuration,
+				hideEase);
 
-			Tween.Alpha(
-				canvasGroup,
-				endValue: 0f,
-				duration: hideDuration,
-				ease: Ease.InCubic
-			);
+			if (scaleTween.isAlive)
+			{
+				scaleTween.OnComplete(CompleteHide);
+			}
+			else
+			{
+				CompleteHide();
+			}
+
+			TweenAlphaIfNeeded(0f, hideDuration, Ease.InCubic);
 		}
 
 		public void HideInstant()
@@ -156,6 +150,38 @@ namespace Game.Nodes.Presentation
 			Action completed = hideCompleted;
 			hideCompleted = null;
 			completed?.Invoke();
+		}
+
+		private Tween TweenScaleIfNeeded(Vector3 targetScale, float duration, Ease ease)
+		{
+			if ((target.localScale - targetScale).sqrMagnitude <= 0.000001f)
+			{
+				target.localScale = targetScale;
+				return default;
+			}
+
+			return Tween.Scale(
+				target,
+				endValue: targetScale,
+				duration: duration,
+				ease: ease
+			);
+		}
+
+		private void TweenAlphaIfNeeded(float targetAlpha, float duration, Ease ease)
+		{
+			if (Mathf.Approximately(canvasGroup.alpha, targetAlpha))
+			{
+				canvasGroup.alpha = targetAlpha;
+				return;
+			}
+
+			Tween.Alpha(
+				canvasGroup,
+				endValue: targetAlpha,
+				duration: duration,
+				ease: ease
+			);
 		}
 	}
 }

@@ -259,7 +259,7 @@ namespace Game.IDE.Presentation
 
 			int newCaret = tokenStart + insertText.Length;
 
-			inputField.SetTextWithoutNotify(newText);
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(inputField, newText);
 			inputField.caretPosition = newCaret;
 			inputField.selectionAnchorPosition = newCaret;
 			inputField.selectionFocusPosition = newCaret;

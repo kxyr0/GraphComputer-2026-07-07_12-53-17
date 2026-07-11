@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Game.Nodes.Composition;
 using Game.Nodes.Definitions;
+using Game.Research;
+using Game.Research.Runtime;
 using Game.Selection.Categories.Runtime;
 using Game.Selection.Runtime;
 using Game.UI.Input;
@@ -17,11 +19,19 @@ namespace Game.Nodes.Presentation
 	{
 		private const string BackCategoryId = "__back";
 		private const string CreateSelectionCategoryId = "__create_selection_category";
+		private static readonly string[] BaseUnlockedNodeIds =
+		{
+			"kernel",
+			"system_core",
+			"data",
+			"security"
+		};
 
 		[SerializeField] private NodeCatalog nodeCatalog;
 		[SerializeField] private NodeFactory nodeFactory;
 		[SerializeField] private NodeSelectionService selectionService;
 		[SerializeField] private NodeCategoryFrameService categoryFrameService;
+		[SerializeField] private ResearchService researchService;
 
 		[Header("Graph")]
 		[SerializeField] private RectTransform nodesRoot;
@@ -80,6 +90,22 @@ namespace Game.Nodes.Presentation
 
 			HideTemplateWithoutDisabling();
 			HideImmediate();
+		}
+
+		private void OnEnable()
+		{
+			if (researchService != null)
+			{
+				researchService.Changed += HandleResearchChanged;
+			}
+		}
+
+		private void OnDisable()
+		{
+			if (researchService != null)
+			{
+				researchService.Changed -= HandleResearchChanged;
+			}
 		}
 
 		private void Update()
@@ -265,6 +291,11 @@ namespace Game.Nodes.Presentation
 				}
 
 				if (!CanShowNodeInCurrentMenu(definition))
+				{
+					continue;
+				}
+
+				if (!CanShowNodeByResearch(definition))
 				{
 					continue;
 				}
@@ -481,6 +512,54 @@ namespace Game.Nodes.Presentation
 				pendingConnectionSourcePort,
 				definition
 			);
+		}
+
+		private bool CanShowNodeByResearch(NodeDefinition definition)
+		{
+			if (definition == null)
+			{
+				return false;
+			}
+
+			if (IsBaseUnlockedNode(definition.Id))
+			{
+				return true;
+			}
+
+			ResearchConfig config = researchService != null
+				? researchService.Config
+				: null;
+
+			return config != null &&
+				   config.IsNodeUnlockedByCompletedResearch(
+					   definition.Id,
+					   researchService.IsCompleted
+				   );
+		}
+
+		private void HandleResearchChanged()
+		{
+			if (!isMenuOpen)
+			{
+				return;
+			}
+
+			BuildMenu();
+			Canvas.ForceUpdateCanvases();
+			ClampMenuToParent();
+		}
+
+		private static bool IsBaseUnlockedNode(string nodeDefinitionId)
+		{
+			foreach (string baseNodeId in BaseUnlockedNodeIds)
+			{
+				if (string.Equals(baseNodeId, nodeDefinitionId, StringComparison.OrdinalIgnoreCase))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		private bool CanShowSelectionCategoryAction()

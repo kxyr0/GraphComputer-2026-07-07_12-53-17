@@ -23,6 +23,10 @@ namespace Game.UI
 		[Header("Input")]
 		[SerializeField] private bool useShiftTab = true;
 
+		[Header("Input Guard")]
+		[SerializeField] private bool requireVisibleParentGroups = true;
+		[SerializeField, Range(0f, 1f)] private float parentVisibleAlphaThreshold = 0.05f;
+
 		private void Reset()
 		{
 			targetGroup = GetComponent<CanvasGroup>();
@@ -94,6 +98,11 @@ namespace Game.UI
 				return;
 			}
 
+			if (visible && requireVisibleParentGroups && HasHiddenParentCanvasGroup())
+			{
+				return;
+			}
+
 			Tween.StopAll(onTarget: targetGroup);
 
 			float targetAlpha = visible ? visibleAlpha : hiddenAlpha;
@@ -124,6 +133,26 @@ namespace Game.UI
 
 			float middle = (visibleAlpha + hiddenAlpha) * 0.5f;
 			return targetGroup.alpha > middle;
+		}
+
+		private bool HasHiddenParentCanvasGroup()
+		{
+			Transform current = targetGroup.transform.parent;
+
+			while (current != null)
+			{
+				CanvasGroup parentGroup = current.GetComponent<CanvasGroup>();
+
+				if (parentGroup != null &&
+					parentGroup.alpha <= parentVisibleAlphaThreshold)
+				{
+					return true;
+				}
+
+				current = current.parent;
+			}
+
+			return false;
 		}
 
 		private void ApplyInstant(bool visible)

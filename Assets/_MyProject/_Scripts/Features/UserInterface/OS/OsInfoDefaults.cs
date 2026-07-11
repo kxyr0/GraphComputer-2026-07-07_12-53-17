@@ -40,10 +40,25 @@ namespace Game.UI.OS
 				{
 					new OsInfoEntry("Release Channel", "None", OsInfoTone.Bad),
 					new OsInfoEntry("Supported Devices", "None", OsInfoTone.Bad),
+					new OsInfoEntry("Module Requirements", "Not Configured", OsInfoTone.Warning),
+					new OsInfoEntry("Missing Modules", "None", OsInfoTone.Good),
 					new OsInfoEntry("Active Installations", "0", OsInfoTone.Bad),
+					new OsInfoEntry("Player Reputation", "0%", OsInfoTone.Bad),
+					new OsInfoEntry("Audience Trust", "None", OsInfoTone.Bad),
 					new OsInfoEntry("User Rating", "0.0 / 5", OsInfoTone.Bad),
 					new OsInfoEntry("Latest Release", "None", OsInfoTone.Bad),
 					new OsInfoEntry("Update Status", "Not Published", OsInfoTone.Bad)
+				}
+			);
+		}
+
+		public static OsInfoSection CreateCompetitorsSection()
+		{
+			return new OsInfoSection(
+				"Competitors",
+				new[]
+				{
+					new OsInfoEntry("Competitors", "None", OsInfoTone.Neutral)
 				}
 			);
 		}

@@ -47,6 +47,8 @@ namespace Game.IDE.Presentation
 			{
 				ClearEditor();
 			}
+
+			RefreshAllTabsVisuals();
 		}
 
 		public void OpenDocument(string documentId, string title, string code)
@@ -178,6 +180,18 @@ namespace Game.IDE.Presentation
 				: string.Empty;
 		}
 
+		public void RefreshAllTabsVisuals()
+		{
+			RefreshTabVisuals();
+
+			foreach (IdeCodeTabButtonView tabView in tabViewsById.Values)
+			{
+				tabView?.RefreshVisual();
+			}
+
+			Canvas.ForceUpdateCanvases();
+		}
+
 		private void BuildInitialDocuments()
 		{
 			ClearTabs();
@@ -242,6 +256,7 @@ namespace Game.IDE.Presentation
 			);
 
 			tabViewsById[document.Id] = tabView;
+			tabView.RefreshVisual();
 		}
 
 		private void RefreshTabVisuals()

@@ -111,6 +111,17 @@ namespace Game.Nodes.Runtime
 			CurrentSecurity = OsSecurityRuntimeMetrics.Lerp(CurrentSecurity, securityMetrics, config.Smoothing);
 			CurrentControl = OsControlRuntimeMetrics.Lerp(CurrentControl, controlMetrics, config.Smoothing);
 		}
+
+		public bool HasOperationalReachableDefinition(string definitionId)
+		{
+			if (string.IsNullOrWhiteSpace(definitionId))
+			{
+				return false;
+			}
+
+			return reachableNodeDefinitionIds.Contains(definitionId);
+		}
+
 		private OsSecurityRuntimeMetrics CalculateSecurityMetrics(OsRuntimeMetrics systemMetrics)
 		{
 			if (!HasReachableDefinition("security"))

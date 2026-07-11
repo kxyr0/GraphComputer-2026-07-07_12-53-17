@@ -43,7 +43,7 @@ namespace Game.Nodes.Presentation
 
 			if (labelText != null)
 			{
-				labelText.text = definition.DisplayName;
+				Game.UI.RuntimeTextRefresh.SetText(labelText, definition.DisplayName);
 			}
 
 			gameObject.SetActive(true);

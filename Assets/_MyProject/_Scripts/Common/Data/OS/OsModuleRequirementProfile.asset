@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0f28cfefcc64bb8ba4c06d78f3993a8, type: 3}
+  m_Name: OsModuleRequirementProfile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.OS.Requirements.OsModuleRequirementProfile
+  annualRequirements:
+  - year: 1996
+    requiredModules:
+    - moduleId: file_system
+      displayName: File System
+      alternateModuleIds: []
+      missingQualityPenalty: 0.08
+  - year: 1997
+    requiredModules:
+    - moduleId: security
+      displayName: Security
+      alternateModuleIds: []
+      missingQualityPenalty: 0.1
+  - year: 1998
+    requiredModules:
+    - moduleId: firewall
+      displayName: Firewall
+      alternateModuleIds: []
+      missingQualityPenalty: 0.12
+  - year: 2000
+    requiredModules:
+    - moduleId: memory_manager
+      displayName: Memory Manager
+      alternateModuleIds:
+      - node.memory.manager
+      missingQualityPenalty: 0.1
+  - year: 2002
+    requiredModules:
+    - moduleId: control
+      displayName: Control
+      alternateModuleIds: []
+      missingQualityPenalty: 0.1
+  - year: 2004
+    requiredModules:
+    - moduleId: display_manager
+      displayName: Display Manager
+      alternateModuleIds: []
+      missingQualityPenalty: 0.12

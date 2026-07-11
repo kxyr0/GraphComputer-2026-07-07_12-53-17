@@ -102,7 +102,7 @@ namespace Game.Nodes.Presentation
 		{
 			if (titleText != null)
 			{
-				titleText.text = value ?? string.Empty;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, value);
 			}
 		}
 
@@ -110,7 +110,7 @@ namespace Game.Nodes.Presentation
 		{
 			if (idText != null)
 			{
-				idText.text = value ?? string.Empty;
+				Game.UI.RuntimeTextRefresh.SetText(idText, value);
 			}
 		}
 

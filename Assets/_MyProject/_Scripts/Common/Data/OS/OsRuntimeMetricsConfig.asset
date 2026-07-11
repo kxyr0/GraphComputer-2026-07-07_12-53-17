@@ -48,7 +48,7 @@ MonoBehaviour:
   recoverySafetyBonus: 12
   compressionIndexMultiplier: 0.72
   kernelType: Hybrid
-  baseProcessLimit: 32
+  baseProcessLimit: 8
   baseCrashRisk: 9
   baseResponseTimeMs: 16
   processManagerLimitBonus: 32

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4d4efb95a1c43d98998b6e951aa9c73, type: 3}
+  m_Name: OsPlayerReputationProfile
+  m_EditorClassIdentifier: Assembly-CSharp::Game.OS.Reputation.OsPlayerReputationProfile
+  initialReputationPercent: 0
+  badQualityThreshold: 0.4
+  goodQualityThreshold: 0.65
+  excellentQualityThreshold: 0.85
+  quietDriftPerStep: 0
+  positiveGainPerStep: 1.25
+  excellentGainPerStep: 2.5
+  negativeLossPerStep: 4
+  installationsPerBonusPoint: 100
+  installBonusPerPoint: 0.35
+  maxInstallBonusPerStep: 3
+  firstWaveMultiplierAtZero: 1
+  firstWaveMultiplierAtMax: 6
+  discoveryMultiplierAtZero: 1
+  discoveryMultiplierAtMax: 2.25
+  recommendationMultiplierAtZero: 1
+  recommendationMultiplierAtMax: 2
+  badChurnMultiplierAtZero: 1.25
+  badChurnMultiplierAtMax: 0.65

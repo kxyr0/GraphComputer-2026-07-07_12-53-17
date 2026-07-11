@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b6731407b9a4e4b84f39eac72beae46, type: 3}
+  m_Name: ResearchConfig
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Research.ResearchConfig
+  researches:
+  - id: basic_memory_management
+    tabId: system_core_tab
+    title: Basic Memory Management
+    description: Unlocks baseline memory scheduling research.
+    costDays: 1
+    gridPosition: {x: 0, y: -100}
+    prerequisiteIds: []
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - memory_manager
+  - id: adaptive_memory_management
+    tabId: system_core_tab
+    title: Adaptive Memory Management
+    description: Improves memory behavior after the basic branch is completed.
+    costDays: 6
+    gridPosition: {x: 300, y: 0}
+    prerequisiteIds:
+    - basic_memory_management
+    mutualExclusionIds:
+    - strict_memory_sandbox
+    unlockedNodeDefinitionIds: []
+  - id: strict_memory_sandbox
+    tabId: system_core_tab
+    title: Strict Memory Sandbox
+    description: A safer alternative to adaptive memory behavior.
+    costDays: 6
+    gridPosition: {x: -300, y: -1}
+    prerequisiteIds:
+    - basic_memory_management
+    mutualExclusionIds:
+    - adaptive_memory_management
+    unlockedNodeDefinitionIds: []
+  - id: control_bus
+    tabId: system_core_tab
+    title: Control Bus
+    description: Unlocks the Control node for device and input routing.
+    costDays: 4
+    gridPosition: {x: 0, y: 200}
+    prerequisiteIds: []
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - control
+  - id: system_clock
+    tabId: system_core_tab
+    title: System Clock
+    description: Unlocks the Time node for runtime clock services.
+    costDays: 3
+    gridPosition: {x: 300, y: 200}
+    prerequisiteIds:
+    - control_bus
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - time
+  - id: kernel_scheduler
+    tabId: kernel_tab
+    title: Kernel Scheduler
+    description: Opens the first kernel optimization branch.
+    costDays: 4
+    gridPosition: {x: 0, y: 0}
+    prerequisiteIds: []
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds: []
+  - id: process_isolation
+    tabId: security_tab
+    title: Process Isolation
+    description: Adds a baseline security research branch.
+    costDays: 4
+    gridPosition: {x: 0, y: 0}
+    prerequisiteIds: []
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - firewall
+  - id: indexed_storage
+    tabId: data_tab
+    title: Indexed Storage
+    description: Starts the data management research branch.
+    costDays: 4
+    gridPosition: {x: 0, y: 0}
+    prerequisiteIds: []
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - file_system
+  - id: user_report_pipeline
+    tabId: data_tab
+    title: User Report Pipeline
+    description: Unlocks the User Reports node for release feedback analysis.
+    costDays: 5
+    gridPosition: {x: 300, y: 0}
+    prerequisiteIds:
+    - indexed_storage
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - user_reports
+  - id: news_feed_protocol
+    tabId: data_tab
+    title: News Feed Protocol
+    description: Unlocks the News node for market and era updates.
+    costDays: 5
+    gridPosition: {x: -300, y: 0}
+    prerequisiteIds:
+    - indexed_storage
+    mutualExclusionIds: []
+    unlockedNodeDefinitionIds:
+    - news

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Game.IDE.Presentation;
 using Game.Nodes.Definitions;
 using Game.Nodes.Presentation;
 using UnityEngine;
@@ -45,6 +46,7 @@ namespace Game.Nodes.Composition
 			{
 				if (existingNode != null)
 				{
+					EnsureIdeDoubleClickOpen(existingNode.gameObject);
 					return existingNode;
 				}
 
@@ -59,6 +61,8 @@ namespace Game.Nodes.Composition
 					$"Node prefab '{definition.Prefab.name}' has no NodeView component."
 				);
 			}
+
+			EnsureIdeDoubleClickOpen(instance);
 
 			RectTransform rectTransform = instance.transform as RectTransform;
 
@@ -95,6 +99,19 @@ namespace Game.Nodes.Composition
 			}
 
 			return nodeView;
+		}
+
+		private static void EnsureIdeDoubleClickOpen(GameObject instance)
+		{
+			if (instance == null)
+			{
+				return;
+			}
+
+			if (!instance.TryGetComponent<IdeOpenNodeOnDoubleClick>(out _))
+			{
+				instance.AddComponent<IdeOpenNodeOnDoubleClick>();
+			}
 		}
 	}
 }

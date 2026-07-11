@@ -1,3 +1,4 @@
+using System;
 using Game.IDE.Runtime;
 using Game.Nodes.Presentation;
 using UnityEngine;
@@ -65,7 +66,7 @@ namespace Game.IDE.Presentation
 
 			if (ideRuntime == null)
 			{
-				ideRuntime = FindFirstObjectByType<IdeRuntimeController>(FindObjectsInactive.Include);
+				ideRuntime = FindAnyObjectByType<IdeRuntimeController>(FindObjectsInactive.Include);
 			}
 
 			if (ideRuntime == null)
@@ -74,7 +75,18 @@ namespace Game.IDE.Presentation
 				return;
 			}
 
-			IdeNodeDocument document = IdeNodeDocumentResolver.Resolve(nodeView);
+			IdeNodeDocument document;
+
+			try
+			{
+				document = IdeNodeDocumentResolver.Resolve(nodeView);
+			}
+			catch (Exception exception)
+			{
+				Debug.LogException(exception, this);
+				ideRuntime.OpenIdeOnly();
+				return;
+			}
 
 			ideRuntime.OpenNodeDocument(
 				document.DocumentId,

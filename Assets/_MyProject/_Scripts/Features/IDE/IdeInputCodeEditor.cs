@@ -63,6 +63,10 @@ export {
 		[SerializeField, Range(1, 8)] private int spacesPerTab = 4;
 		[SerializeField] private bool enableTabIndent = true;
 
+		[Header("Undo / Redo")]
+		[SerializeField] private bool enableUndoRedo = true;
+		[SerializeField, Min(1)] private int maxUndoSteps = 128;
+
 		[Header("View")]
 		[SerializeField] private bool useSyntaxHighlight = true;
 		[SerializeField, Range(0f, 1f)] private float rawInputTextAlpha = 0.02f;
@@ -71,6 +75,11 @@ export {
 		private RectTransform inputTextRect;
 		private RectTransform highlightRect;
 		private RectTransform lineNumbersRect;
+		private readonly List<TextEditSnapshot> undoHistory = new();
+		private readonly List<TextEditSnapshot> redoHistory = new();
+		private TextEditSnapshot lastTrackedSnapshot;
+		private bool hasTrackedSnapshot;
+		private bool isApplyingHistorySnapshot;
 
 		private static readonly HashSet<string> Keywords =
 			new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -214,6 +223,11 @@ export {
 
 		private void Update()
 		{
+			if (HandleUndoRedo())
+			{
+				return;
+			}
+
 			HandleTabIndent();
 			UpdateStatus();
 		}
@@ -240,7 +254,7 @@ export {
 
 			if (tabTitleText != null)
 			{
-				tabTitleText.text = tabTitle;
+				Game.UI.RuntimeTextRefresh.SetText(tabTitleText, tabTitle);
 			}
 		}
 
@@ -252,7 +266,8 @@ export {
 				return;
 			}
 
-			inputField.SetTextWithoutNotify(code ?? string.Empty);
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(inputField, code);
+			ResetUndoRedoHistory();
 			RefreshView();
 		}
 
@@ -356,7 +371,221 @@ export {
 
 		private void HandleInputChanged(string value)
 		{
+			if (!isApplyingHistorySnapshot)
+			{
+				TrackInputChange(value);
+			}
+
 			RefreshView();
+		}
+
+		private bool HandleUndoRedo()
+		{
+			if (!enableUndoRedo || inputField == null || !inputField.isFocused)
+			{
+				return false;
+			}
+
+			Keyboard keyboard = Keyboard.current;
+
+			if (keyboard == null || !IsControlPressed(keyboard))
+			{
+				return false;
+			}
+
+			bool shiftPressed = keyboard.shiftKey.isPressed;
+			bool redoPressed = keyboard.yKey.wasPressedThisFrame ||
+							   (shiftPressed && keyboard.zKey.wasPressedThisFrame);
+
+			if (redoPressed)
+			{
+				return Redo();
+			}
+
+			if (keyboard.zKey.wasPressedThisFrame)
+			{
+				return Undo();
+			}
+
+			return false;
+		}
+
+		private bool Undo()
+		{
+			if (undoHistory.Count == 0 || inputField == null)
+			{
+				return false;
+			}
+
+			TextEditSnapshot current = CaptureCurrentSnapshot();
+			TextEditSnapshot previous = PopSnapshot(undoHistory);
+
+			PushSnapshot(redoHistory, current);
+			ApplySnapshot(previous);
+			return true;
+		}
+
+		private bool Redo()
+		{
+			if (redoHistory.Count == 0 || inputField == null)
+			{
+				return false;
+			}
+
+			TextEditSnapshot current = CaptureCurrentSnapshot();
+			TextEditSnapshot next = PopSnapshot(redoHistory);
+
+			PushSnapshot(undoHistory, current);
+			ApplySnapshot(next);
+			return true;
+		}
+
+		private void TrackInputChange(string value)
+		{
+			if (inputField == null)
+			{
+				return;
+			}
+
+			TextEditSnapshot nextSnapshot = CaptureSnapshot(value);
+
+			if (!hasTrackedSnapshot)
+			{
+				lastTrackedSnapshot = nextSnapshot;
+				hasTrackedSnapshot = true;
+				return;
+			}
+
+			if (lastTrackedSnapshot.Text != nextSnapshot.Text)
+			{
+				PushSnapshot(undoHistory, lastTrackedSnapshot);
+				redoHistory.Clear();
+			}
+
+			lastTrackedSnapshot = nextSnapshot;
+		}
+
+		private void RecordManualTextChange()
+		{
+			if (!enableUndoRedo || inputField == null)
+			{
+				return;
+			}
+
+			EnsureTrackedSnapshot();
+			PushSnapshot(undoHistory, lastTrackedSnapshot);
+			redoHistory.Clear();
+		}
+
+		private void ResetUndoRedoHistory()
+		{
+			undoHistory.Clear();
+			redoHistory.Clear();
+
+			if (inputField == null)
+			{
+				hasTrackedSnapshot = false;
+				return;
+			}
+
+			lastTrackedSnapshot = CaptureCurrentSnapshot();
+			hasTrackedSnapshot = true;
+		}
+
+		private void ApplySnapshot(TextEditSnapshot snapshot)
+		{
+			if (inputField == null)
+			{
+				return;
+			}
+
+			isApplyingHistorySnapshot = true;
+
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(inputField, snapshot.Text);
+			RestoreSelection(snapshot);
+			inputField.ForceLabelUpdate();
+			inputField.ActivateInputField();
+
+			lastTrackedSnapshot = CaptureCurrentSnapshot();
+			hasTrackedSnapshot = true;
+			isApplyingHistorySnapshot = false;
+
+			RefreshView();
+		}
+
+		private void EnsureTrackedSnapshot()
+		{
+			if (hasTrackedSnapshot || inputField == null)
+			{
+				return;
+			}
+
+			lastTrackedSnapshot = CaptureCurrentSnapshot();
+			hasTrackedSnapshot = true;
+		}
+
+		private TextEditSnapshot CaptureCurrentSnapshot()
+		{
+			return CaptureSnapshot(inputField != null ? inputField.text : string.Empty);
+		}
+
+		private TextEditSnapshot CaptureSnapshot(string text)
+		{
+			if (inputField == null)
+			{
+				return new TextEditSnapshot(text, 0, 0, 0);
+			}
+
+			return new TextEditSnapshot(
+				text,
+				inputField.caretPosition,
+				inputField.selectionAnchorPosition,
+				inputField.selectionFocusPosition);
+		}
+
+		private void RestoreSelection(TextEditSnapshot snapshot)
+		{
+			int length = inputField.text != null ? inputField.text.Length : 0;
+			int caret = Mathf.Clamp(snapshot.CaretPosition, 0, length);
+			int anchor = Mathf.Clamp(snapshot.SelectionAnchorPosition, 0, length);
+			int focus = Mathf.Clamp(snapshot.SelectionFocusPosition, 0, length);
+
+			inputField.caretPosition = caret;
+			inputField.selectionAnchorPosition = anchor;
+			inputField.selectionFocusPosition = focus;
+		}
+
+		private void PushSnapshot(List<TextEditSnapshot> history, TextEditSnapshot snapshot)
+		{
+			if (history == null)
+			{
+				return;
+			}
+
+			if (history.Count > 0 && history[history.Count - 1].Equals(snapshot))
+			{
+				return;
+			}
+
+			history.Add(snapshot);
+
+			if (history.Count > Mathf.Max(1, maxUndoSteps))
+			{
+				history.RemoveAt(0);
+			}
+		}
+
+		private static TextEditSnapshot PopSnapshot(List<TextEditSnapshot> history)
+		{
+			int index = history.Count - 1;
+			TextEditSnapshot snapshot = history[index];
+			history.RemoveAt(index);
+			return snapshot;
+		}
+
+		private static bool IsControlPressed(Keyboard keyboard)
+		{
+			return keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed;
 		}
 
 		private void RefreshView()
@@ -367,19 +596,21 @@ export {
 
 			if (tabTitleText != null)
 			{
-				tabTitleText.text = tabTitle;
+				Game.UI.RuntimeTextRefresh.SetText(tabTitleText, tabTitle);
 			}
 
 			if (lineNumbersText != null)
 			{
-				lineNumbersText.text = BuildLineNumbers(code);
+				Game.UI.RuntimeTextRefresh.SetText(lineNumbersText, BuildLineNumbers(code));
 			}
 
 			if (highlightText != null)
 			{
-				highlightText.text = useSyntaxHighlight
-					? HighlightCode(code)
-					: EscapeRichText(code);
+				Game.UI.RuntimeTextRefresh.SetText(
+					highlightText,
+					useSyntaxHighlight
+						? HighlightCode(code)
+						: EscapeRichText(code));
 			}
 
 			UpdateStatus();
@@ -424,13 +655,16 @@ export {
 
 			int newCaretPosition = start + indent.Length;
 
-			inputField.SetTextWithoutNotify(newText);
+			RecordManualTextChange();
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(inputField, newText);
 			inputField.caretPosition = newCaretPosition;
 			inputField.selectionAnchorPosition = newCaretPosition;
 			inputField.selectionFocusPosition = newCaretPosition;
 
 			inputField.ForceLabelUpdate();
 
+			lastTrackedSnapshot = CaptureCurrentSnapshot();
+			hasTrackedSnapshot = true;
 			RefreshView();
 		}
 
@@ -472,8 +706,9 @@ export {
 
 			int lineCount = CountLines(text);
 
-			statusText.text =
-				$"Ln {line}, Col {column}    Lines {lineCount}    Chars {text.Length}";
+			Game.UI.RuntimeTextRefresh.SetText(
+				statusText,
+				$"Ln {line}, Col {column}    Lines {lineCount}    Chars {text.Length}");
 		}
 
 		private static string BuildLineNumbers(string source)
@@ -775,6 +1010,34 @@ export {
 			}
 
 			return builder.ToString();
+		}
+
+		private readonly struct TextEditSnapshot : IEquatable<TextEditSnapshot>
+		{
+			public readonly string Text;
+			public readonly int CaretPosition;
+			public readonly int SelectionAnchorPosition;
+			public readonly int SelectionFocusPosition;
+
+			public TextEditSnapshot(
+				string text,
+				int caretPosition,
+				int selectionAnchorPosition,
+				int selectionFocusPosition)
+			{
+				Text = text ?? string.Empty;
+				CaretPosition = caretPosition;
+				SelectionAnchorPosition = selectionAnchorPosition;
+				SelectionFocusPosition = selectionFocusPosition;
+			}
+
+			public bool Equals(TextEditSnapshot other)
+			{
+				return Text == other.Text &&
+					   CaretPosition == other.CaretPosition &&
+					   SelectionAnchorPosition == other.SelectionAnchorPosition &&
+					   SelectionFocusPosition == other.SelectionFocusPosition;
+			}
 		}
 	}
 }

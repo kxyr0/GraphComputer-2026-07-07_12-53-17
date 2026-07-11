@@ -119,7 +119,7 @@ namespace Game.Selection.Categories.Presentation
 
 			if (titleText != null)
 			{
-				titleText.text = $"{title} ({nodeCount})";
+				Game.UI.RuntimeTextRefresh.SetText(titleText, $"{title} ({nodeCount})");
 			}
 
 			SetRaycastBlocking(true);

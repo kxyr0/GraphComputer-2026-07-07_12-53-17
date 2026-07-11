@@ -1,4 +1,5 @@
 using Game.Nodes.Runtime;
+using Game.OS.Competitors;
 using Game.OS.Release;
 using UnityEngine;
 
@@ -8,23 +9,34 @@ namespace Game.UI.OS
 	public sealed class OsInfoPresenter : MonoBehaviour
 	{
 		[Header("Panels")]
+		[SerializeField] private OsInfoPageBinding[] pages;
 		[SerializeField] private OsInfoPanelView statusPanel;
 		[SerializeField] private OsInfoPanelView healthPanel;
 		[SerializeField] private OsInfoPanelView releasePanel;
+		[SerializeField] private OsInfoPanelView competitorsPanel;
 
 		[Header("Data")]
 		[SerializeField] private OsInfoSection statusSection = OsInfoDefaults.CreateStatusSection();
 		[SerializeField] private OsInfoSection healthSection = OsInfoDefaults.CreateHealthSection();
 		[SerializeField] private OsInfoSection releaseSection = OsInfoDefaults.CreateReleaseSection();
+		[SerializeField] private OsInfoSection competitorsSection = OsInfoDefaults.CreateCompetitorsSection();
 		[SerializeField] private bool useDefaultStatusSection = true;
 		[SerializeField] private bool useDefaultReleaseSection = true;
+		[SerializeField] private bool useDefaultCompetitorsSection = true;
 
 		[Header("Runtime")]
 		[SerializeField] private OsRuntimeMetricsService metricsService;
 		[SerializeField] private OsReleaseService releaseService;
+		[SerializeField] private OsCompetitorService competitorService;
 		[SerializeField] private bool useRuntimeHealthMetrics = true;
 		[SerializeField] private bool useRuntimeReleaseInfo = true;
+		[SerializeField] private bool useRuntimeCompetitorInfo = true;
 		[SerializeField, Min(0.05f)] private float runtimeRefreshInterval = 0.5f;
+
+		[Header("Competitor Ranking")]
+		[SerializeField] private bool includePlayerInCompetitorRanking = true;
+		[SerializeField] private string playerCompanyName = "You";
+		[SerializeField] private string playerOperatingSystemName = "GraphOS";
 
 		[Header("Behaviour")]
 		[SerializeField] private bool refreshOnEnable = true;
@@ -52,7 +64,7 @@ namespace Game.UI.OS
 
 		private void Update()
 		{
-			if (!useRuntimeHealthMetrics && !useRuntimeReleaseInfo)
+			if (!useRuntimeHealthMetrics && !useRuntimeReleaseInfo && !useRuntimeCompetitorInfo)
 			{
 				return;
 			}
@@ -70,9 +82,7 @@ namespace Game.UI.OS
 
 		private void OnDisable()
 		{
-			statusPanel.Clear();
-			healthPanel.Clear();
-			releasePanel.Clear();
+			ClearPanels();
 		}
 
 		[ContextMenu("Refresh OS Info")]
@@ -92,9 +102,18 @@ namespace Game.UI.OS
 					? OsInfoDefaults.CreateReleaseSection()
 					: releaseSection;
 
-			statusPanel.Render(currentStatusSection);
-			healthPanel.Render(currentHealthSection);
-			releasePanel.Render(currentReleaseSection);
+			OsInfoSection currentCompetitorsSection = TryCreateRuntimeCompetitorsSection(out OsInfoSection runtimeCompetitorsSection)
+				? runtimeCompetitorsSection
+				: useDefaultCompetitorsSection
+					? OsInfoDefaults.CreateCompetitorsSection()
+					: competitorsSection;
+
+			RenderSections(
+				currentStatusSection,
+				currentHealthSection,
+				currentReleaseSection,
+				currentCompetitorsSection
+			);
 		}
 
 		[ContextMenu("Apply Default Data")]
@@ -103,6 +122,7 @@ namespace Game.UI.OS
 			statusSection = OsInfoDefaults.CreateStatusSection();
 			healthSection = OsInfoDefaults.CreateHealthSection();
 			releaseSection = OsInfoDefaults.CreateReleaseSection();
+			competitorsSection = OsInfoDefaults.CreateCompetitorsSection();
 		}
 
 		private void EnsureData()
@@ -121,6 +141,72 @@ namespace Game.UI.OS
 			{
 				releaseSection = OsInfoDefaults.CreateReleaseSection();
 			}
+
+			if (competitorsSection == null || !competitorsSection.HasEntries)
+			{
+				competitorsSection = OsInfoDefaults.CreateCompetitorsSection();
+			}
+		}
+
+		private void RenderSections(
+			OsInfoSection status,
+			OsInfoSection health,
+			OsInfoSection release,
+			OsInfoSection competitors)
+		{
+			if (pages != null && pages.Length > 0)
+			{
+				foreach (OsInfoPageBinding page in pages)
+				{
+					if (page == null)
+					{
+						continue;
+					}
+
+					page.Render(GetSectionForPage(page.PageType, status, health, release, competitors));
+				}
+
+				return;
+			}
+
+			statusPanel?.Render(status);
+			healthPanel?.Render(health);
+			releasePanel?.Render(release);
+			competitorsPanel?.Render(competitors);
+		}
+
+		private void ClearPanels()
+		{
+			if (pages != null && pages.Length > 0)
+			{
+				foreach (OsInfoPageBinding page in pages)
+				{
+					page?.Clear();
+				}
+
+				return;
+			}
+
+			statusPanel?.Clear();
+			healthPanel?.Clear();
+			releasePanel?.Clear();
+			competitorsPanel?.Clear();
+		}
+
+		private static OsInfoSection GetSectionForPage(
+			OsInfoPageType pageType,
+			OsInfoSection status,
+			OsInfoSection health,
+			OsInfoSection release,
+			OsInfoSection competitors)
+		{
+			return pageType switch
+			{
+				OsInfoPageType.HealthSystem => health,
+				OsInfoPageType.ReleaseInformation => release,
+				OsInfoPageType.Competitors => competitors,
+				_ => status
+			};
 		}
 
 		private bool TryCreateRuntimeHealthSection(out OsInfoSection section)
@@ -209,9 +295,25 @@ namespace Game.UI.OS
 						release.SupportedDevices,
 						GetSupportedDevicesTone(release.SupportedDevices)),
 					new OsInfoEntry(
+						"Module Requirements",
+						release.ModuleRequirementsStatus,
+						GetModuleRequirementsTone(release.ModuleRequirementPenaltyPercent)),
+					new OsInfoEntry(
+						"Missing Modules",
+						release.MissingRequiredModules,
+						GetMissingModulesTone(release.MissingRequiredModules)),
+					new OsInfoEntry(
 						"Active Installations",
 						release.ActiveInstallationsText,
 						release.ActiveInstallations > 0 ? OsInfoTone.Good : OsInfoTone.Bad),
+					new OsInfoEntry(
+						"Player Reputation",
+						release.PlayerReputationText,
+						GetPositiveScoreTone(release.PlayerReputationPercent)),
+					new OsInfoEntry(
+						"Audience Trust",
+						release.PlayerReputationTier,
+						GetPositiveScoreTone(release.PlayerReputationPercent)),
 					new OsInfoEntry(
 						"User Rating",
 						release.UserRatingText,
@@ -238,6 +340,85 @@ namespace Game.UI.OS
 			}
 
 			releaseService = OsReleaseService.GetOrCreate();
+		}
+
+		private bool TryCreateRuntimeCompetitorsSection(out OsInfoSection section)
+		{
+			section = null;
+
+			if (!useRuntimeCompetitorInfo)
+			{
+				return false;
+			}
+
+			ResolveCompetitorService();
+
+			OsCompetitorState[] competitors = competitorService != null && competitorService.HasConfig
+				? competitorService.CreateSnapshot()
+				: System.Array.Empty<OsCompetitorState>();
+
+			if ((competitors == null || competitors.Length == 0) && !includePlayerInCompetitorRanking)
+			{
+				return false;
+			}
+
+			OsCompetitorState[] rankedCompetitors = OsCompetitorLeaderboardBuilder.CreateRankedSnapshot(
+				competitors,
+				CreatePlayerCompetitorState(),
+				includePlayerInCompetitorRanking
+			);
+
+			if (rankedCompetitors == null || rankedCompetitors.Length == 0)
+			{
+				return false;
+			}
+
+			OsInfoEntry[] entries = new OsInfoEntry[rankedCompetitors.Length];
+
+			for (int i = 0; i < rankedCompetitors.Length; i++)
+			{
+				entries[i] = CreateCompetitorEntry(rankedCompetitors[i], i + 1);
+			}
+
+			section = new OsInfoSection("Competitors", entries);
+			return true;
+		}
+
+		private void ResolveCompetitorService()
+		{
+			if (competitorService != null)
+			{
+				return;
+			}
+
+			competitorService = FindAnyObjectByType<OsCompetitorService>(FindObjectsInactive.Include);
+		}
+
+		private OsCompetitorState CreatePlayerCompetitorState()
+		{
+			ResolveReleaseService();
+
+			OsReleaseState release = releaseService != null ? releaseService.Current : default;
+			int activeUsers = releaseService != null ? release.ActiveInstallations : 0;
+
+			return new OsCompetitorState(
+				playerCompanyName,
+				playerOperatingSystemName,
+				0,
+				activeUsers,
+				isPlayer: true
+			);
+		}
+
+		private static OsInfoEntry CreateCompetitorEntry(OsCompetitorState competitor, int rank)
+		{
+			return new OsInfoEntry(
+				$"{rank}. {competitor.CompanyName}",
+				competitor.DisplayValue,
+				competitor.IsPlayer
+					? OsInfoTone.Good
+					: GetCompetitorUsersTone(competitor.CurrentUsers)
+			);
 		}
 
 		private static OsInfoEntry CreatePercentEntry(string label, float value)
@@ -313,6 +494,39 @@ namespace Game.UI.OS
 				: OsInfoTone.Good;
 		}
 
+		private static OsInfoTone GetModuleRequirementsTone(float penaltyPercent)
+		{
+			if (penaltyPercent <= 0f)
+			{
+				return OsInfoTone.Good;
+			}
+
+			return penaltyPercent < 25f ? OsInfoTone.Warning : OsInfoTone.Bad;
+		}
+
+		private static OsInfoTone GetMissingModulesTone(string missingModules)
+		{
+			return string.IsNullOrWhiteSpace(missingModules) ||
+				   string.Equals(missingModules, "None", System.StringComparison.OrdinalIgnoreCase)
+				? OsInfoTone.Good
+				: OsInfoTone.Bad;
+		}
+
+		private static OsInfoTone GetCompetitorUsersTone(int users)
+		{
+			if (users >= 1000000)
+			{
+				return OsInfoTone.Bad;
+			}
+
+			if (users >= 100000)
+			{
+				return OsInfoTone.Warning;
+			}
+
+			return OsInfoTone.Neutral;
+		}
+
 		private static OsInfoTone GetRatingTone(float rating)
 		{
 			if (rating >= 3.8f)
@@ -333,6 +547,15 @@ namespace Game.UI.OS
 			if (string.Equals(status, "Current", System.StringComparison.OrdinalIgnoreCase))
 			{
 				return OsInfoTone.Good;
+			}
+
+			if (status != null &&
+				status.IndexOf("Word Of Mouth", System.StringComparison.OrdinalIgnoreCase) >= 0)
+			{
+				return status.IndexOf("Excellent", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+					   status.IndexOf("Positive", System.StringComparison.OrdinalIgnoreCase) >= 0
+					? OsInfoTone.Good
+					: OsInfoTone.Warning;
 			}
 
 			if (string.Equals(status, "Published", System.StringComparison.OrdinalIgnoreCase))

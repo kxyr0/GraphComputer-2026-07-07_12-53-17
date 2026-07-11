@@ -226,8 +226,7 @@ namespace Game.IDE.Presentation
 
 			if (outputField != null)
 			{
-				outputField.SetTextWithoutNotify(string.Empty);
-				outputField.ForceLabelUpdate();
+				Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(outputField, string.Empty);
 			}
 
 			isDirty = false;
@@ -270,7 +269,7 @@ namespace Game.IDE.Presentation
 				builder.AppendLine(line);
 			}
 
-			outputField.SetTextWithoutNotify(builder.ToString());
+			Game.UI.RuntimeTextRefresh.SetTextWithoutNotify(outputField, builder.ToString());
 
 			// Держим caret в конце, чтобы TMP_InputField сам
 			// корректно прокрутил внутренний Text Area вниз.

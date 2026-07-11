@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Nodes.Definitions.NodeJsonDefinitionAsset
   json: "{\n  \"id\": \"control\",\n  \"title\": \"Control\",\n  \"size\": {\n   
     \"x\": 560,\n    \"y\": 460\n  },\n  \"canMove\": true,\n  \"backgroundColor\":
-    \"#102333DD\",\n  \"headerColor\": \"#050813EE\",\n  \"accentColor\": \"#19FFF5\",\n 
+    \"#000000DD\",\n  \"headerColor\": \"#000000DD\",\n  \"accentColor\": \"#19FFF5\",\n 
     \"stats\": [\n    {\n      \"label\": \"Device Support\",\n      \"value\": \"0%\"\n   
     },\n    {\n      \"label\": \"Input Delay\",\n      \"value\": \"0ms\"\n    },\n   
     {\n      \"label\": \"Audio Layer\",\n      \"value\": \"None\"\n    },\n   

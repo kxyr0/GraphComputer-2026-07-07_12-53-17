@@ -33,7 +33,7 @@ namespace Game.Nodes.Presentation
 		{
 			if (titleText != null)
 			{
-				titleText.text = title;
+				Game.UI.RuntimeTextRefresh.SetText(titleText, title);
 			}
 		}
 

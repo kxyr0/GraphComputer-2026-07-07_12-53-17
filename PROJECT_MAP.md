@@ -1,6 +1,6 @@
 # Project Map: GraphComputer
 
-Обновлено: 2026-07-10.
+Обновлено: 2026-07-11.
 
 ## Кратко
 
@@ -60,7 +60,7 @@
 | `Sounds` | Музыка и звуки. Сейчас есть 2 mp3 в `Sounds/Music`. |
 | `_Scripts` | Весь собственный C#-код проекта. |
 
-Состав `_MyProject` без `.meta`: 111 `.cs`, 33 `.asset`, 4 `.prefab`, 5 `.mat`, 5 `.shader`, 3 `.asmdef`, 3 `.ttf`, 2 `.unity`, 2 `.mp3`, 1 `.inputactions`, 1 `.scenetemplate`.
+Состав `_MyProject` без `.meta`: 154 `.cs`, 38 `.asset`, 5 `.prefab`, 15 `.mat`, 15 `.shader`, 3 `.asmdef`, 3 `.ttf`, 2 `.unity`, 2 `.mp3`, 1 `.png`, 1 `.inputactions`, 1 `.scenetemplate`.
 
 ## Сборки и namespaces
 
@@ -115,7 +115,7 @@
 
 1. Двойной клик по ноде обрабатывает `IdeOpenNodeOnDoubleClick`.
 2. `IdeRuntimeController` открывает IDE-окно и документ в `IdeCodeTabsController`.
-3. `IdeInputCodeEditor` отображает код, подсветку, line numbers, статус caret.
+3. `IdeInputCodeEditor` отображает код, подсветку, line numbers, статус caret, `Tab`-отступы и локальную undo/redo history (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`).
 4. `IdeAutocompleteController` показывает autocomplete по текущему token.
 5. `IdeBuildButtonController` сохраняет активный документ и запускает `IdeBuildAnalyzer`.
 6. `IdeBuildAnalyzer` проверяет DSL: `module`, `mode`, `require`, `budget`, `export`, `if/end`, известные statements и module-specific правила.
@@ -148,7 +148,17 @@
 | `GameTimeService` | `Features/World/GameTimeService.cs` | Игровое время: старт 1995, 30 дней в месяце, speed/paused, текст clock/date/status. |
 | `EraNewsService` | `Features/World/News/EraNewsService.cs` | Берёт текущую новость по absolute day из `EraNewsDatabase`. |
 | `EraNewsDatabase` | `Common/EraNewsDatabase/EraNewsDatabase.cs` | ScriptableObject со списком исторических событий, есть default events 1995. |
-| `UserReportsService` | `Features/World/Reports/UserReportsService.cs` | Генерирует пользовательские отзывы по OS metrics, mood, active users и побочкам вроде false blocks. |
+| `UserReportsService` | `Features/World/Reports/UserReportsService.cs` | Генерирует пользовательские отзывы по OS metrics, mood, active users, false blocks и отсутствующим обязательным модулям текущего года. |
+
+### 7. Research
+
+1. `ResearchConfig.asset` хранит список `ResearchDefinition`: id, tab id, title, description, cost days, grid position, prerequisites, mutual exclusions и unlock node ids.
+2. `ResearchService` держит completed/in-progress sets, стартует research, слушает `GameTimeService.TimeChanged` и завершает исследования по absolute day.
+3. `ResearchTreePresenter` берёт текущий tab id, клонирует `ResearchButtonView` template, раскладывает кнопки по `ResearchGridLayout` и рисует зависимости/исключения через `ResearchLinkLineView`.
+4. `ResearchTabsController` переключает page CanvasGroup-ы и синхронизирует tab id с presenter.
+5. `ResearchWindowController` открывает/закрывает окно через кнопки или `InputActionReference`, поддерживает fade/scale animation и защиту от text input focus.
+6. `ResearchTooltipView` показывает title/body/research time и следует за курсором внутри clamp root.
+7. `ResearchConfig.IsNodeUnlockedByCompletedResearch` даёт точку подключения unlock-логики нод к завершённым исследованиям.
 
 ## `_Scripts/Common`
 
@@ -159,7 +169,24 @@
 | `Common/NodeCatalog/NodeCatalog.asset` | Реальный каталог нод, на него смотрит `NodeFactory` и context menu. |
 | `Common/NodeDefinition/...` | `NodeDefinition.asset` для рабочих нод каталога. |
 | `Common/Data/Nodes/...` | JSON-definition assets и другие перенесённые данные нод. Это источник JSON-визуала/stats/ports. |
+| `Common/Data/Research/ResearchConfig.asset` | Реальный config дерева исследований: вкладки, стоимость, prerequisites, mutual exclusions и unlock-и нод. |
+| `Common/Research/ResearchConfig.cs` | ScriptableObject-config исследований, lookup по id, проверка mutual exclusion и helper unlock-а нод по завершённым исследованиям. |
+| `Common/Research/ResearchDefinition.cs` | Serializable definition одного исследования: id, tab id, title, description, cost days, grid position, prerequisites, mutual exclusions, unlocked node ids. |
+| `Common/Research/ResearchState.cs` | Read-only runtime DTO состояния исследования: status, start/complete day, remaining days. |
+| `Common/Research/ResearchStatus.cs` | Enum состояний research: `Locked`, `Available`, `InProgress`, `Completed`, `Excluded`. |
 | `Common/OS/OsRuntimeMetricsConfig.cs` | Конфиг расчёта OS metrics и DTO-структуры метрик, включая побочные показатели сильных нод и настройки сетевого устаревания по эпохам. |
+| `Common/OS/OsReleaseGrowthProfile.cs` | ScriptableObject-профиль прогрессии релиза: discovery, word of mouth, bad reputation churn, rating smoothing, лимит installations и audience modifiers от репутации игрока. |
+| `Common/OS/OsReleaseGrowthResult.cs` | DTO результата одного шага релизной прогрессии: installations delta, rating, reception, update status. |
+| `Common/OS/Requirements/OsModuleRequirementProfile.cs` | ScriptableObject-конфиг годовых требований к OS-модулям: какие module id становятся обязательными с указанного года и какой штраф к качеству релиза даёт отсутствие. |
+| `Common/OS/Requirements/OsAnnualModuleRequirement.cs` | Serializable годовой набор требований, который начинает действовать с `year` и дальше остаётся обязательным. |
+| `Common/OS/Requirements/OsRequiredModule.cs` | Serializable требование одного модуля: `moduleId`, display name, альтернативные id и penalty за отсутствие. |
+| `Common/OS/Requirements/OsModuleRequirementEvaluation.cs` | DTO результата проверки требований: missing modules, status text и суммарный quality penalty. |
+| `Common/OS/Competitors/OsCompetitorConfig.cs` | ScriptableObject-config конкурентов: interval роста и список компаний с OS, стартовыми пользователями и growth-настройками. |
+| `Common/OS/Competitors/OsCompetitorDefinition.cs` | Serializable definition одного конкурента: company, operating system, starting users, flat/percent growth и max users. |
+| `Common/OS/Competitors/OsCompetitorState.cs` | Read-only DTO текущего состояния конкурента или игрока для UI. |
+| `Common/OS/Competitors/OsCompetitorLeaderboardBuilder.cs` | Чистый builder рейтинга competitors page: добавляет игрока к snapshot, сортирует по users и стабилизирует tie-break. |
+| `Common/OS/Reputation/OsPlayerReputationProfile.cs` | ScriptableObject-баланс репутации игрока: gain/loss от качества релиза, install bonus, tier text и множители audience для будущих релизов. |
+| `Common/OS/Reputation/OsReleaseAudienceModifiers.cs` | DTO audience-множителей: first wave, discovery, recommendations и bad reputation churn. |
 | `Common/OS/OsNetworkEraBenchmark.cs` | Данные одного годового сетевого benchmark: дата, thresholds Mbps и максимальные штрафы. |
 | `Common/OS/OsNetworkEraEvaluator.cs` | Чистая оценка скорости сети относительно текущего года: quality label, score и штрафы к stability/load. |
 | `Common/OS/OsNetworkEraAssessment.cs` | Результат оценки сети для runtime metrics. |
@@ -199,7 +226,7 @@
 
 | Файл | Назначение |
 | --- | --- |
-| `Features/IDE/IdeInputCodeEditor.cs` | TMP-based code editor: initial code, syntax highlight, line numbers, Tab indentation, caret status; подсвечивает `mode` и значения режимов. |
+| `Features/IDE/IdeInputCodeEditor.cs` | TMP-based code editor: initial code, syntax highlight, line numbers, Tab indentation, caret status, undo/redo (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`); подсвечивает `mode` и значения режимов. |
 | `Features/IDE/IdeAutocompleteControllerIdeAutocompleteController.cs` | Autocomplete dropdown; runtime домерживает дефолтный DSL-словарь (`mode`, режимы и т.д.) к сериализованным entries. Имя файла содержит дублирование `IdeAutocompleteControllerIdeAutocompleteController`. |
 | `Features/IDE/IdeAutocompleteSuggestionView.cs` | View одной строки autocomplete. |
 | `Features/IDE/Build/IdeBuildAnalyzer.cs` | Статический анализатор DSL, строит `IdeBuildReport`, ошибки/предупреждения/effects и сохраняет module settings. |
@@ -219,7 +246,7 @@
 | `Features/Input/GameInputBlocker.cs` | Глобальный static blocker ввода gameplay/camera/drag. |
 | `Features/Input/BlocksCameraInput.cs` | Marker component: UI под ним блокирует camera input. |
 | `Features/Input/UiPointerBlockUtility.cs` | Raycast через EventSystem, проверяет pointer over `BlocksCameraInput`. |
-| `Features/Input/IdeGameplayInputBlocker.cs` | Блокирует gameplay input, когда IDE/UI активна. |
+| `Features/Input/IdeGameplayInputBlocker.cs` | Блокирует gameplay input, когда IDE root CanvasGroup или указанные IDE groups видимы; освобождает blocker при disable/destroy. |
 | `Features/Input/New Folder with Selection` | Пустая/служебная папка, по названию выглядит как случайно созданная Unity folder. |
 
 ### Selection
@@ -302,26 +329,57 @@
 | --- | --- |
 | `Features/OS/Runtime/OsRuntimeMetricsService.cs` | Расчёт всех OS metrics по доступным и успешно собранным нодам; применяет mode/tradeoffs сильных нод и сетевое устаревание от `GameTimeService`. Namespace `Game.Nodes.Runtime`, хотя путь `Features/OS`. |
 | `Features/OS/Runtime/OsBranchNodeRuntime.cs` | Runtime updater branch-нод, пишет в stats новые побочные метрики: false blocks, fragmentation, leak risk, GPU usage. Тоже namespace `Game.Nodes.Runtime`. |
-| `Features/OS/Release/OsReleaseService.cs` | Runtime service публикации OS build: Deploy читает успешный `SystemCore` build, `platform`, затем постепенно растит installations/rating. |
-| `Features/OS/Release/OsReleaseState.cs` | Read-only DTO release-info для UI: channel, supported devices, installs, rating, latest release, status. |
+| `Features/OS/Release/OsReleaseService.cs` | Runtime service публикации OS build: Deploy читает успешный `SystemCore` build, `platform`, проверяет годовые module requirements, затем растит installations/rating через `OsReleaseGrowthProfile` и отдаёт feedback в `OsPlayerReputationService`. |
+| `Features/OS/Release/OsReleaseState.cs` | Read-only DTO release-info для UI: channel, supported devices, installs, rating, latest release, status, player reputation и состояние требований модулей. |
+| `Features/OS/Competitors/OsCompetitorService.cs` | Runtime service конкурентов: хранит текущих users по каждому конкуренту и постепенно растит их по `OsCompetitorConfig`. |
+| `Features/OS/Reputation/OsPlayerReputationService.cs` | Runtime service репутации игрока: хранит reputation между релизами, отдаёт audience modifiers и применяет feedback от качества OS. |
+
+### Research
+
+| Файл | Назначение |
+| --- | --- |
+| `Features/Research/Runtime/IResearchService.cs` | Минимальный interface research runtime: `Changed`, config, active id, current day, start/status/state/debug API. |
+| `Features/Research/Runtime/ResearchService.cs` | Runtime-сервис исследований: стартует доступные исследования, запрещает locked/excluded/in-progress, завершает по игровым дням, поддерживает debug complete/reset. |
 
 ### UserInterface
 
 | Файл | Назначение |
 | --- | --- |
-| `Features/UserInterface/IdeWindowCanvasGroupController.cs` | Открыть/закрыть IDE-window через CanvasGroup, кнопки, Escape, PrimeTween alpha; поддерживает `excludedGroups`, чтобы IDE не управляла чужими панелями вроде `BackgroundBottomTabs`. |
+| `Features/UserInterface/RuntimeTextRefresh.cs` | Общий helper для безопасного runtime-обновления `TMP_Text`, legacy `Text`, `TMP_InputField` и Modern UI Pack `ButtonManager`: ставит текст/цвет, dirty flags, mesh update и layout rebuild. |
+| `Features/UserInterface/IdeWindowCanvasGroupController.cs` | Открыть/закрыть IDE-window через CanvasGroup, кнопки, Escape, PrimeTween alpha; поддерживает `excludedGroups`, `hideOnCloseGroups`, восстановление zero-scale на open и refresh child tabs/code tabs. |
 | `Features/UserInterface/IdeBottomTabsController.cs` | Нижние вкладки IDE: console/output и прочие панели. |
 | `Features/UserInterface/IdeCodeTabsController.cs` | Документы кода, вкладки, initial documents и default DSL snippets. |
 | `Features/UserInterface/IdeCodeTabButtonView.cs` | View кнопки code-tab с select/close. |
-| `Features/UserInterface/CanvasGroupShiftTabToggle.cs` | Toggle CanvasGroup по Shift+Tab. Namespace `Game.UI`. |
+| `Features/UserInterface/CanvasGroupShiftTabToggle.cs` | Toggle CanvasGroup по Shift+Tab; умеет не открываться, если родительские CanvasGroup скрыты. Namespace `Game.UI`. |
 | `Features/UserInterface/Buttons/IdeBuildButtonController.cs` | Главная кнопка Build, запускает analyzer, registry, Time applier, output tab. |
-| `Features/UserInterface/OS/OsWindowController.cs` | OS-window controller: CanvasGroup open/close, Tab input, close button, PrimeTween alpha + scale animation в стиле desktop window. |
-| `Features/UserInterface/OS/OsDeployBuildButtonManager.cs` | Пассивный держатель ссылки на Deploy Button; не подписывается на click и не выполняет build. |
-| `Features/UserInterface/OS/OsInfoPresenter.cs` | Presenter трёх OS info panels: status, runtime health от `OsRuntimeMetricsService`, release. |
-| `Features/UserInterface/OS/OsInfoPanelView.cs` | View, которая клонирует указанный TMP row template внутрь Content, поддерживает общий title/template и красит строки по tone. |
+| `Features/UserInterface/OS/OsWindowController.cs` | OS-window controller: CanvasGroup open/close, Tab input, InputAction toggle, close button, PrimeTween alpha + scale animation, выбор default OS tab; `blockInputWhenGroupsVisible` блокирует OS input при видимой IDE/другом UI. |
+| `Features/UserInterface/OS/OsDeployBuildButtonManager.cs` | Кнопка Deploy Build: вызывает `OsReleaseService.DeployBuild`, но не запускает IDE build. |
+| `Features/UserInterface/OS/OsInfoPresenter.cs` | Presenter OS info pages: System Information, Health System, Release Information, Competitors; выводит module requirements в Release Information, строит ranked competitors list с игроком, поддерживает page bindings и legacy panels. |
+| `Features/UserInterface/OS/OsInfoPanelView.cs` | View, которая клонирует `GameObject` row template внутрь Content, поддерживает `OsInfoEntryView`, Modern UI Pack `ButtonManager` row и legacy TMP row fallback. |
 | `Features/UserInterface/OS/OsInfoDefaults.cs` | Дефолтные данные OS-window: Stata OS, Health OS fallback, Release Information с цветовыми tone. |
 | `Features/UserInterface/OS/OsInfoSection.cs` | Serializable section model для заголовка и entries. |
 | `Features/UserInterface/OS/OsInfoEntry.cs` | Serializable row model `label/value/tone`. |
+| `Features/UserInterface/OS/Tabs/OsWindowTabsController.cs` | OS page/tab controller: переключает page roots через CanvasGroup и красит кнопки вкладок. |
+| `Features/UserInterface/OS/Tabs/OsWindowTabItem.cs` | Serializable binding одной OS-вкладки: id, optional `ButtonManager`/Button, visual targets и page root. |
+| `Features/UserInterface/OS/Rows/OsInfoEntryView.cs` | Универсальный row-template компонент для OS info: раздельные label/value/combined text, `ButtonManager.SetText` и tone graphics. |
+| `Features/UserInterface/OS/Pages/OsInfoPageBinding.cs` | Binding типа OS info page к `OsInfoPanelView`. |
+| `Features/UserInterface/Notifications/NotificationView.cs` | View уведомления: принимает `NotificationEvent`, заполняет Title/Body/StatusCircle, подключает две `ButtonManager`-кнопки и прячет отсутствующие action-кнопки. |
+| `Features/UserInterface/Notifications/NotificationAnimator.cs` | Анимация уведомления: fade на root `CanvasGroup` и popup scale на content root через PrimeTween. |
+| `Features/UserInterface/Notifications/NotificationButtonBinder.cs` | SRP-биндинг одной `ButtonManager`-кнопки: включает override colors, ставит текст и подписывает click. |
+| `Features/UserInterface/Notifications/NotificationEvent.cs` | Serializable payload уведомления: title, body, status, primary/secondary action. |
+| `Features/UserInterface/Notifications/NotificationAction.cs` | Serializable action уведомления: label, close-after-click и UnityEvent callback. |
+| `Features/UserInterface/Notifications/NotificationStatus.cs` | Enum статуса уведомления: info/success/warning/error. |
+| `Features/UserInterface/Notifications/NotificationStatusColorPalette.cs` | Цветовая палитра для `StatusCircle` и опциональной окраски текста кнопок. |
+| `Features/UserInterface/Research/ResearchWindowController.cs` | Research window: CanvasGroup open/close, Button/ButtonManager open-close, InputAction toggle, optional text-input guard, PrimeTween alpha + scale animation. |
+| `Features/UserInterface/Research/ResearchTreePresenter.cs` | Presenter research tree: выбирает tab root, клонирует research button template, раскладывает по grid, создаёт dependency/mutual-exclusion lines и обновляет states. |
+| `Features/UserInterface/Research/ResearchButtonView.cs` | View одной research-кнопки: title/cost/status, tooltip binder, optional in-progress material, colors per state, click start research. |
+| `Features/UserInterface/Research/ResearchGridLayout.cs` | Настройки координат сетки research button-ов. |
+| `Features/UserInterface/Research/ResearchScrollContentLayout.cs` | Расчёт scroll content bounds под research tree. |
+| `Features/UserInterface/Research/ResearchLinkLineView.cs` | UGUI `Graphic`, рисует линию между research button-ами. |
+| `Features/UserInterface/Research/ResearchTooltipBinder.cs` | Pointer binder для research button, показывает/двигает/прячет tooltip. |
+| `Features/UserInterface/Research/ResearchTooltipView.cs` | Tooltip research: title/body/research time, follow cursor, clamp inside root, fade/scale через `NotificationAnimator`. |
+| `Features/UserInterface/Research/Tabs/ResearchTabsController.cs` | Research tabs: переключает CanvasGroup page roots, красит tab buttons и синхронизирует tree presenter. |
+| `Features/UserInterface/Research/Tabs/ResearchTabItem.cs` | Serializable binding одной research-вкладки: id, page root/group, Button/ButtonManager, visual targets. |
 
 ### World
 
@@ -329,7 +387,7 @@
 | --- | --- |
 | `Features/World/GameTimeService.cs` | Игровые дата/время и скорость. |
 | `Features/World/News/EraNewsService.cs` | Текущая новость по времени. |
-| `Features/World/Reports/UserReportsService.cs` | Генератор пользовательских отзывов по состоянию OS, включая отдельные жалобы на false blocks. |
+| `Features/World/Reports/UserReportsService.cs` | Генератор пользовательских отзывов по состоянию OS, включая отдельные жалобы на false blocks и устаревшие/отсутствующие модули. |
 | `Features/World/Reports/UserReportModels.cs` | DTO и enums отзывов: severity/mood/entry. |
 
 ## Ноды в текущем каталоге
@@ -373,22 +431,26 @@
 | `news` | News | Date, Headline, Description | Нет ports |
 | `user_reports` | User Reports | Active Users, Mood, Reports, Critical | `system_core:Input` |
 
-Также в `Common/Data/Nodes` лежат:
+Также рядом с JSON-нودами лежат основные config assets:
 
-- `OS/OsRuntimeMetricsConfig.asset`
-- `Era News/EraNewsDatabase/EraNewsDatabase.asset`
+- `Common/Data/OS/OsRuntimeMetricsConfig.asset`
+- `Common/Data/OS/OsModuleRequirementProfile.asset`
+- `Common/Data/OS/OsReleaseGrowthProfile.asset`
+- `Common/Data/OS/OsPlayerReputationProfile.asset`
+- `Common/Data/OS/OsCompetitorConfig.asset`
+- `Common/Data/Research/ResearchConfig.asset`
+- `Common/Data/Nodes/Era News/EraNewsDatabase/EraNewsDatabase.asset`
 
 ## Prefab
 
 | Файл | Назначение |
 | --- | --- |
-| `Prefab/Node.prefab` | Базовый prefab для большинства JSON-driven нод. |
-| `Prefab/Node_SystemCore.prefab` | Специализированный prefab System Core. |
 | `Prefab/Node_docs.prefab` | Документационная нода. |
 | `Prefab/Node_security_Preview.prefab` | Preview/security prefab. |
 | `Prefab/Node_user_reports_Preview.prefab` | Preview/user reports prefab. |
 | `Prefab/DropdownPanel.prefab` | UI dropdown, используется для меню/autocomplete. |
-| `Prefab/UserInterface` | Папка UI-prefab-ов, сейчас файлов без `.meta` не найдено. |
+| `Prefab/UserInterface/ResearchButton.prefab` | Template research-кнопки для `ResearchTreePresenter`. |
+| `Prefab/UserInterface` | Папка UI-prefab-ов. Сейчас содержит `ResearchButton.prefab`. |
 
 ## Art
 
@@ -399,8 +461,19 @@
 | `Art/_Shaders/GraphComputerNodePanelBackground.shader` | Фон панели ноды. |
 | `Art/_Shaders/GraphComputerNodeHeader.shader` | Шейдер header ноды. |
 | `Art/_Shaders/NodeConnectionFlow.shader` | Визуал connection-line flow. |
-| `Art/Materials/M_*.mat` | Материалы для этих шейдеров. |
+| `Art/_Shaders/ResearchProgressCompiler.shader` | Optional effect для research in progress: compiler/progress pulse. |
+| `Art/_Shaders/NodeSignalBloom.shader` | Optional glow для активных/важных нод. |
+| `Art/_Shaders/PacketTraceFlow.shader` | Optional data packet flow для network/data UI. |
+| `Art/_Shaders/FirewallPulseBarrier.shader` | Optional pulse barrier для firewall/security. |
+| `Art/_Shaders/MemoryCorruptionGlitch.shader` | Optional glitch для memory/crash/error states. |
+| `Art/_Shaders/TerminalGlass.shader` | Optional glass overlay для IDE/console. |
+| `Art/_Shaders/WorldDataRain.shader` | Optional data-rain background для world/OS panels. |
+| `Art/_Shaders/LinkOverdrive.shader` | Optional overdrive effect для overloaded/active connections. |
+| `Art/_Shaders/NeuralCircuitAura.shader` | Optional circuit aura для сложных/high-tech нод. |
+| `Art/_Shaders/NodeHeatMapOverlay.shader` | Optional load/heat overlay для high load nodes. |
+| `Art/Materials/M_*.mat` | Материалы для этих шейдеров: `M_GridBackground`, `M_NodeConnectionFlow`, `M_ResearchProgressCompiler`, `M_TerminalGlass`, `M_WorldDataRain` и т.д. |
 | `Art/Font/NotoSans*`, `Art/Font/Literata*` | TTF и TMP SDF assets для UI/нод. |
+| `Art/Textures/Spiral/...png` | Raster texture asset, сейчас лежит в подпапке `Spiral`. |
 
 ## Settings
 
@@ -458,7 +531,7 @@
 | Добавить новую ноду | `Common/Data/Nodes/...` для JSON, `Common/NodeDefinition/...` для `NodeDefinition`, затем `Common/NodeCatalog/NodeCatalog.asset`. |
 | Задать стартовый код ноды | Поле `initialCode` в JSON asset из `Common/Data/Nodes/...`; формат языка описан в `GRAPH_OS_LANGUAGE.md`. |
 | Задать fallback-режим ноды | Поле `mode` в JSON asset. Если `initialCode` задан, режим писать внутри DSL как `mode = strict`/`balanced`/`permissive` и т.д. |
-| Изменить визуал нод | `NodeViewVisualPresenter.cs`, `NodeGeneratedLayoutController.cs`, `NodeGeneratedContentBuilder.cs`, `NodeCircleStatusPresenter.cs`, JSON assets в `Common/Data/Nodes`, prefab `Prefab/Node.prefab`, материалы в `Art/Materials`. `NodeView.cs` лучше держать фасадом. |
+| Изменить визуал нод | `NodeViewVisualPresenter.cs`, `NodeGeneratedLayoutController.cs`, `NodeGeneratedContentBuilder.cs`, `NodeCircleStatusPresenter.cs`, JSON assets в `Common/Data/Nodes`, назначенные prefab-ы из `Prefab`, материалы в `Art/Materials`. `NodeView.cs` лучше держать фасадом. |
 | Изменить правила CircleStatus нод | `NodeCircleStatusEvaluator.cs` для порогов/ключевых слов, `NodeView.cs` для serialized цветов и ссылки на `circleStatusImage`. |
 | Изменить выделение/select box/delete нод | `Features/Selection/...`, плюс `NodeConnectionDragController.DeleteConnectionsForNode` для очистки линий при удалении ноды. |
 | Изменить рамки категорий выбранных нод | `Features/Selection/Categories/...` и `NodeGraphContextMenuController.cs`; prefab рамки назначается в `NodeCategoryFrameService`, hover/selected/pass-through живут в `NodeCategoryFrameInputController`. |
@@ -468,11 +541,22 @@
 | Изменить build DSL | `IdeBuildAnalyzer.cs`, `ModuleBuildSettings.cs`, `IdeCodeTemplateProvider.cs`, `TimeModuleSpeedParser.cs`, `GRAPH_OS_LANGUAGE.md`. |
 | Изменить режимы/компромиссы нод | `ModuleOperatingMode.cs`, `ModuleBuildSettings.cs`, `OsRuntimeMetricsService.cs`, `OsRuntimeMetricsConfig.cs`, `GRAPH_OS_LANGUAGE.md`. |
 | Изменить результат build на игру | `NodeCodeRegistry.cs`, `OsRuntimeMetricsService.cs`, `TimeModuleSpeedApplier.cs`. |
+| Изменить undo/redo, Tab indent или поведение редактора кода | `Features/IDE/IdeInputCodeEditor.cs`. |
 | Изменить OS-баланс | `Common/OS/OsRuntimeMetricsConfig.cs` и `Common/Data/OS/OsRuntimeMetricsConfig.asset`. |
 | Изменить устаревание сети по годам | `networkEraBenchmarks` в `Common/Data/OS/OsRuntimeMetricsConfig.asset`; логика оценки лежит в `Common/OS/OsNetworkEraEvaluator.cs`. |
+| Изменить требования модулей по годам | `Common/Data/OS/OsModuleRequirementProfile.asset`; чистая логика лежит в `Common/OS/Requirements/...`, а `OsReleaseService.cs` применяет штраф к качеству релиза и статусу OS. |
 | Изменить время/новости | `GameTimeService.cs`, `EraNewsService.cs`, `EraNewsDatabase.cs`, соответствующие assets. |
 | Изменить пользовательские отзывы | `UserReportsService.cs`, `UserReportsNodeRuntime.cs`, `UserReportsHistoryView.cs`. |
-| Изменить публикацию OS build | `Features/OS/Release/OsReleaseService.cs`, `ModuleBuildSettings.cs`, `OsInfoPresenter.cs`, `OsDeployBuildButtonManager.cs`. |
+| Изменить публикацию OS build | `Features/OS/Release/OsReleaseService.cs`, `Features/OS/Reputation/OsPlayerReputationService.cs`, `Common/OS/OsReleaseGrowthProfile.cs`, `Common/Data/OS/OsReleaseGrowthProfile.asset`, `Common/Data/OS/OsPlayerReputationProfile.asset`, `ModuleBuildSettings.cs`, `OsInfoPresenter.cs`, `OsDeployBuildButtonManager.cs`. |
+| Изменить прогрессию installations/rating | `Common/Data/OS/OsReleaseGrowthProfile.asset`; формула лежит в `Common/OS/OsReleaseGrowthProfile.cs`, а бонусы аудитории приходят из `Common/OS/Reputation/OsReleaseAudienceModifiers.cs`. |
+| Изменить репутацию/популярность игрока | `Common/Data/OS/OsPlayerReputationProfile.asset` для баланса, `Features/OS/Reputation/OsPlayerReputationService.cs` для runtime state. |
+| Изменить конкурентов OS | `Common/Data/OS/OsCompetitorConfig.asset` для списка и баланса роста, `Features/OS/Competitors/OsCompetitorService.cs` для runtime state, `Common/OS/Competitors/OsCompetitorLeaderboardBuilder.cs` для сортировки рейтинга, `OsInfoPresenter.cs` для вывода игрока и конкурентов. |
+| Изменить research tree | `Common/Data/Research/ResearchConfig.asset` для контента, `Common/Research/...` для моделей, `Features/Research/Runtime/ResearchService.cs` для прогресса, `Features/UserInterface/Research/...` для окна/дерева/tooltip. |
+| Подключить unlock нод через исследования | `ResearchConfig.IsNodeUnlockedByCompletedResearch`, `ResearchService.IsCompleted`, затем место spawn/filter логики нод (`NodeFactory`, `NodeGraphContextMenuController`, `NodeCatalog.asset`). |
 | Изменить grid/camera | `CanvasGridView.cs`, `InfiniteGridRenderer.cs`, `GraphPanoramaBackgroundRenderer.cs`, `GridCameraPanZoomController.cs`. |
-| Изменить IDE UI | `IdeWindowCanvasGroupController.cs`, `IdeBottomTabsController.cs`, `IdeCodeTabsController.cs`, `IdeInputCodeEditor.cs`, prefabs/UI сцены. |
-| Изменить OS окно/OS info UI | `Features/UserInterface/OS/OsWindowController.cs`, `OsInfoPresenter.cs`, `OsInfoPanelView.cs`, `OsDeployBuildButtonManager.cs`, UI сцены. |
+| Изменить IDE UI | `IdeWindowCanvasGroupController.cs`, `IdeBottomTabsController.cs`, `IdeCodeTabsController.cs`, `IdeInputCodeEditor.cs`, prefabs/UI сцены. Для дочерних панелей, которые должны закрываться вместе с IDE, использовать `hideOnCloseGroups`. |
+| Изменить блокировку gameplay/OS input под UI | `Features/Input/GameInputBlocker.cs`, `IdeGameplayInputBlocker.cs`, `CanvasGroupShiftTabToggle.cs`, `OsWindowController.blockInputWhenGroupsVisible`, `ResearchWindowController.toggleInputAction`. |
+| Изменить OS окно/OS info UI | `Features/UserInterface/OS/OsWindowController.cs`, `OsInfoPresenter.cs`, `OsInfoPanelView.cs`, `Tabs/OsWindowTabsController.cs`, `Rows/OsInfoEntryView.cs`, `Pages/OsInfoPageBinding.cs`, UI сцены. |
+| Изменить уведомления | `Features/UserInterface/Notifications/NotificationView.cs`, `NotificationAnimator.cs`, `NotificationButtonBinder.cs`; визуальный prefab/scene object собирается вручную и назначается в инспекторе. |
+| Изменить программное обновление UI-текста | `Features/UserInterface/RuntimeTextRefresh.cs`; новые UI-скрипты должны использовать helper вместо прямого `.text = ...`, если текст меняется из кода. |
+| Изменить shader/material visuals | `Assets/_MyProject/Art/_Shaders` и `Assets/_MyProject/Art/Materials`; шейдеры optional и не должны быть обязательными для логики. |
