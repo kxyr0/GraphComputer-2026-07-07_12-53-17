@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Research.Runtime
 {
@@ -30,6 +31,15 @@ namespace Game.Research.Runtime
 		{
 			get => debugCompleteOnStart;
 			set => debugCompleteOnStart = value;
+		}
+
+		[Inject]
+		private void Construct(GameTimeService gameTimeService)
+		{
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
 		}
 
 		private void Awake()

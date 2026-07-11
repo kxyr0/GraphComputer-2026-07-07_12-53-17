@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Game.Nodes.Runtime;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using VContainer;
 
 namespace Game.Nodes.Presentation
 {
@@ -22,6 +23,22 @@ namespace Game.Nodes.Presentation
 		private GeneratedNodePortView hoveredPort;
 		private NodeConnectionView previewConnection;
 		private bool isDragging;
+
+		[Inject]
+		private void Construct(
+			NodeGraphContextMenuController contextMenu,
+			NodeGraphConnectionModel graphConnectionModel)
+		{
+			if (contextMenuController == null)
+			{
+				contextMenuController = contextMenu;
+			}
+
+			if (connectionModel == null)
+			{
+				connectionModel = graphConnectionModel;
+			}
+		}
 
 		private void Awake()
 		{

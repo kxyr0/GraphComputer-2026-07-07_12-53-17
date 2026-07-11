@@ -2,6 +2,7 @@ using Game.OS.Release;
 using Michsky.MUIP;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Game.UI.OS
 {
@@ -12,6 +13,15 @@ namespace Game.UI.OS
 		[SerializeField] private OsReleaseService releaseService;
 
 		public ButtonManager Button => button;
+
+		[Inject]
+		private void Construct(OsReleaseService osReleaseService)
+		{
+			if (releaseService == null)
+			{
+				releaseService = osReleaseService;
+			}
+		}
 
 		private void Reset()
 		{

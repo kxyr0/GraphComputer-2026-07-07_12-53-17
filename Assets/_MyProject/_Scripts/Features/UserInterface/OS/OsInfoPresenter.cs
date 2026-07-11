@@ -2,6 +2,7 @@ using Game.Nodes.Runtime;
 using Game.OS.Competitors;
 using Game.OS.Release;
 using UnityEngine;
+using VContainer;
 
 namespace Game.UI.OS
 {
@@ -42,6 +43,28 @@ namespace Game.UI.OS
 		[SerializeField] private bool refreshOnEnable = true;
 
 		private float refreshTimer;
+
+		[Inject]
+		private void Construct(
+			OsRuntimeMetricsService runtimeMetricsService,
+			OsReleaseService osReleaseService,
+			OsCompetitorService osCompetitorService)
+		{
+			if (metricsService == null)
+			{
+				metricsService = runtimeMetricsService;
+			}
+
+			if (releaseService == null)
+			{
+				releaseService = osReleaseService;
+			}
+
+			if (competitorService == null)
+			{
+				competitorService = osCompetitorService;
+			}
+		}
 
 		private void Reset()
 		{

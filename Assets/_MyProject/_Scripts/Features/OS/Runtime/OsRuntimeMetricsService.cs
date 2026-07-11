@@ -5,6 +5,7 @@ using Game.IDE.Runtime;
 using Game.Nodes.Presentation;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Nodes.Runtime
 {
@@ -35,6 +36,29 @@ namespace Game.Nodes.Runtime
 		[SerializeField] private NodeCodeRegistry codeRegistry;
 		[SerializeField] private bool requireSuccessfulBuildForNodeBenefits = true;
 		[SerializeField] private bool requireSystemCoreBuild = true;
+
+		[Inject]
+		private void Construct(
+			NodeGraphConnectionModel graphConnectionModel,
+			GameTimeService gameTimeService,
+			NodeCodeRegistry registry)
+		{
+			if (connectionModel == null)
+			{
+				connectionModel = graphConnectionModel;
+			}
+
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
+
+			if (codeRegistry == null)
+			{
+				codeRegistry = registry;
+			}
+		}
+
 		private void Awake()
 		{
 			if (connectionModel == null)

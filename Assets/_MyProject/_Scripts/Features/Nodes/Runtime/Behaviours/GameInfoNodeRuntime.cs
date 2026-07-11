@@ -2,6 +2,7 @@ using Game.Nodes.Presentation;
 using Game.World.News;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Nodes.Runtime
 {
@@ -16,6 +17,22 @@ namespace Game.Nodes.Runtime
 
 		private NodeView nodeView;
 		private float refreshTimer;
+
+		[Inject]
+		private void Construct(
+			GameTimeService gameTimeService,
+			EraNewsService eraNewsService)
+		{
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
+
+			if (newsService == null)
+			{
+				newsService = eraNewsService;
+			}
+		}
 
 		private void Awake()
 		{

@@ -4,6 +4,7 @@ using Game.OS.Reputation;
 using Game.OS.Requirements;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.OS.Release
 {
@@ -85,6 +86,34 @@ namespace Game.OS.Release
 		public bool HasSupportedDevices => !string.IsNullOrWhiteSpace(supportedDevices) &&
 										   supportedDevices != NoValue;
 		public int ActiveInstallations => activeInstallations;
+
+		[Inject]
+		private void Construct(
+			NodeCodeRegistry registry,
+			OsRuntimeMetricsService runtimeMetricsService,
+			GameTimeService gameTimeService,
+			OsPlayerReputationService playerReputationService)
+		{
+			if (codeRegistry == null)
+			{
+				codeRegistry = registry;
+			}
+
+			if (metricsService == null)
+			{
+				metricsService = runtimeMetricsService;
+			}
+
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
+
+			if (reputationService == null)
+			{
+				reputationService = playerReputationService;
+			}
+		}
 
 		private void Awake()
 		{

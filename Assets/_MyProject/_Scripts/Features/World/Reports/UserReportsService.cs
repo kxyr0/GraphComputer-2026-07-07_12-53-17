@@ -4,6 +4,7 @@ using Game.Nodes.Runtime;
 using Game.OS.Release;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.World.Reports
 {
@@ -220,6 +221,28 @@ namespace Game.World.Reports
 		public string LatestMessage => LatestReport != null
 			? LatestReport.Message
 			: "No reports yet.";
+
+		[Inject]
+		private void Construct(
+			OsRuntimeMetricsService runtimeMetricsService,
+			GameTimeService gameTimeService,
+			OsReleaseService osReleaseService)
+		{
+			if (metricsService == null)
+			{
+				metricsService = runtimeMetricsService;
+			}
+
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
+
+			if (releaseService == null)
+			{
+				releaseService = osReleaseService;
+			}
+		}
 
 		private void Awake()
 		{

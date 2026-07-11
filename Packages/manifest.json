@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.kyrylokuzyk.primetween": "file:../Assets/Plugins/PrimeTween/internal/com.kyrylokuzyk.primetween.tgz",
+    "jp.hadashikick.vcontainer": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.2d.spriteshape": "15.0.3",
     "com.unity.2d.tooling": "3.0.1",

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.World.Time;
+using VContainer;
 
 namespace Game.World.News
 {
@@ -7,6 +8,15 @@ namespace Game.World.News
 	{
 		[SerializeField] private GameTimeService timeService;
 		[SerializeField] private EraNewsDatabase database;
+
+		[Inject]
+		private void Construct(GameTimeService gameTimeService)
+		{
+			if (timeService == null)
+			{
+				timeService = gameTimeService;
+			}
+		}
 
 		private void Awake()
 		{

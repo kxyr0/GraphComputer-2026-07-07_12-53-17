@@ -6,6 +6,7 @@ using Game.Research.Runtime;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Game.UI.Research
 {
@@ -48,6 +49,15 @@ namespace Game.UI.Research
 		private readonly List<GameObject> generatedObjects = new();
 		private IResearchService service;
 		private ResearchTabHudRoot currentTabRoot;
+
+		[Inject]
+		private void Construct(ResearchService sceneResearchService)
+		{
+			if (researchService == null)
+			{
+				researchService = sceneResearchService;
+			}
+		}
 
 		private void Awake()
 		{

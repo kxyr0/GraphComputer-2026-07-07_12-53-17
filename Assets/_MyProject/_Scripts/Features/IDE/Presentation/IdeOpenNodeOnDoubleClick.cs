@@ -3,6 +3,7 @@ using Game.IDE.Runtime;
 using Game.Nodes.Presentation;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using VContainer;
 
 namespace Game.IDE.Presentation
 {
@@ -11,12 +12,22 @@ namespace Game.IDE.Presentation
 	public sealed class IdeOpenNodeOnDoubleClick : MonoBehaviour, IPointerClickHandler
 	{
 		[SerializeField] private NodeView nodeView;
+		[SerializeField] private IdeRuntimeController ideRuntime;
 
 		[Header("Double Click")]
 		[SerializeField, Min(0.05f)] private float doubleClickMaxDelay = 0.32f;
 		[SerializeField] private bool ignoreClicksOnPorts = true;
 
 		private float lastClickTime = -999f;
+
+		[Inject]
+		private void Construct(IdeRuntimeController runtimeController)
+		{
+			if (ideRuntime == null)
+			{
+				ideRuntime = runtimeController;
+			}
+		}
 
 		private void Reset()
 		{
@@ -62,7 +73,10 @@ namespace Game.IDE.Presentation
 
 		private void OpenInIde()
 		{
-			IdeRuntimeController ideRuntime = IdeRuntimeController.Instance;
+			if (ideRuntime == null)
+			{
+				ideRuntime = IdeRuntimeController.Instance;
+			}
 
 			if (ideRuntime == null)
 			{

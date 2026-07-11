@@ -1,5 +1,6 @@
 using Game.Nodes.Presentation;
 using UnityEngine;
+using VContainer;
 
 namespace Game.Nodes.Runtime
 {
@@ -12,6 +13,15 @@ namespace Game.Nodes.Runtime
 
 		private NodeView nodeView;
 		private float refreshTimer;
+
+		[Inject]
+		private void Construct(OsRuntimeMetricsService runtimeMetricsService)
+		{
+			if (metricsService == null)
+			{
+				metricsService = runtimeMetricsService;
+			}
+		}
 
 		private void Awake()
 		{

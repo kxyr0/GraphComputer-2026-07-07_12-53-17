@@ -8,6 +8,7 @@ using Game.World.Reports;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Game.Nodes.Runtime
 {
@@ -283,6 +284,15 @@ namespace Game.Nodes.Runtime
 		private bool ShouldAutoApplyLayout => automaticMode && autoApplyLayout;
 		private bool ShouldAutoApplyStyles => automaticMode && autoApplyStyles;
 		private bool ShouldApplySettingsDuringRuntime => automaticMode && applySettingsDuringRuntime;
+
+		[Inject]
+		private void Construct(UserReportsService service)
+		{
+			if (reportsService == null)
+			{
+				reportsService = service;
+			}
+		}
 
 		private void Awake()
 		{

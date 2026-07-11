@@ -4,6 +4,8 @@ using Game.IDE.Presentation;
 using Game.Nodes.Definitions;
 using Game.Nodes.Presentation;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Game.Nodes.Composition
 {
@@ -13,6 +15,13 @@ namespace Game.Nodes.Composition
 		[SerializeField] private RectTransform nodesRoot;
 
 		private readonly Dictionary<string, NodeView> uniqueNodes = new();
+		private IObjectResolver objectResolver;
+
+		[Inject]
+		private void Construct(IObjectResolver resolver)
+		{
+			objectResolver = resolver;
+		}
 
 		public NodeView SpawnById(string nodeId, Vector2 position)
 		{
@@ -54,6 +63,8 @@ namespace Game.Nodes.Composition
 			}
 
 			GameObject instance = Instantiate(definition.Prefab, nodesRoot);
+			EnsureIdeDoubleClickOpen(instance);
+			objectResolver?.InjectGameObject(instance);
 
 			if (!instance.TryGetComponent(out NodeView nodeView))
 			{
@@ -61,8 +72,6 @@ namespace Game.Nodes.Composition
 					$"Node prefab '{definition.Prefab.name}' has no NodeView component."
 				);
 			}
-
-			EnsureIdeDoubleClickOpen(instance);
 
 			RectTransform rectTransform = instance.transform as RectTransform;
 

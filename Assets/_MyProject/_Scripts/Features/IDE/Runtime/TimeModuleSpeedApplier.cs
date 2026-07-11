@@ -1,6 +1,7 @@
 using Game.IDE.Runtime;
 using Game.World.Time;
 using UnityEngine;
+using VContainer;
 
 namespace Game.IDE.Presentation
 {
@@ -9,6 +10,15 @@ namespace Game.IDE.Presentation
 	{
 		[SerializeField] private GameTimeService gameTimeService;
 		[SerializeField] private bool logAppliedSpeed = true;
+
+		[Inject]
+		private void Construct(GameTimeService timeService)
+		{
+			if (gameTimeService == null)
+			{
+				gameTimeService = timeService;
+			}
+		}
 
 		private void Awake()
 		{

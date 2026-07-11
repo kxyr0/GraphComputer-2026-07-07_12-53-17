@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Game.IDE.Presentation
 {
@@ -42,6 +43,34 @@ namespace Game.IDE.Presentation
 		[SerializeField, Range(0f, 1f)] private float transientReleaseFailureChance = 0.1f;
 
 		private Coroutine buildCoroutine;
+
+		[Inject]
+		private void Construct(
+			NodeCodeRegistry registry,
+			IdeCodeTabsController tabsController,
+			IdeBottomTabsController bottomTabs,
+			TimeModuleSpeedApplier speedApplier)
+		{
+			if (codeRegistry == null)
+			{
+				codeRegistry = registry;
+			}
+
+			if (codeTabsController == null)
+			{
+				codeTabsController = tabsController;
+			}
+
+			if (bottomTabsController == null)
+			{
+				bottomTabsController = bottomTabs;
+			}
+
+			if (timeModuleSpeedApplier == null)
+			{
+				timeModuleSpeedApplier = speedApplier;
+			}
+		}
 
 		private void Reset()
 		{

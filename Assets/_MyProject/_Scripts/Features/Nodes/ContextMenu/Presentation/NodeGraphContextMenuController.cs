@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using VContainer;
 
 namespace Game.Nodes.Presentation
 {
@@ -67,6 +68,34 @@ namespace Game.Nodes.Presentation
 		private GeneratedNodePortView pendingConnectionSourcePort;
 		private NodeConnectionDragController pendingConnectionController;
 		private int lastShowFrame = -1;
+
+		[Inject]
+		private void Construct(
+			NodeFactory factory,
+			NodeSelectionService nodeSelectionService,
+			NodeCategoryFrameService frameService,
+			ResearchService sceneResearchService)
+		{
+			if (nodeFactory == null)
+			{
+				nodeFactory = factory;
+			}
+
+			if (selectionService == null)
+			{
+				selectionService = nodeSelectionService;
+			}
+
+			if (categoryFrameService == null)
+			{
+				categoryFrameService = frameService;
+			}
+
+			if (researchService == null)
+			{
+				researchService = sceneResearchService;
+			}
+		}
 
 		private void Awake()
 		{
